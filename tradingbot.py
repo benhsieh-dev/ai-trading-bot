@@ -13,3 +13,11 @@ ALPACA_CREDS = {
     "API_SECRET": API_SECRET, 
     "PAPER": True
 }
+
+class MLTrader(Strategy):
+    def initialize(self):
+        pass
+    def on_trading_iteration(self):
+        pass
+
+broker = Alpaca(ALPACA_CREDS)
