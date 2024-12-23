@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from lumibot.brokers import Alpaca
 from lumibot.backtesting import YahooDataBacktesting 
 from lumibot.strategies.strategy import Strategy
@@ -29,15 +31,16 @@ class MLTrader(Strategy):
 
     def on_trading_iteration(self):
         cash, last_price, quantity = self.position_sizing()
-        if self.last_trade == None:
-            order = self.create_order(
-                self.symbol,
-                10,
-                "buy",
-                type="market"
-            )
-            self.submit_order(order)
-            self.last_trade="buy"
+        if cash > last_price:       
+            if self.last_trade == None:
+                order = self.create_order(
+                    self.symbol,
+                    10,
+                    "buy",
+                    type="market"
+                )
+                self.submit_order(order)
+                self.last_trade="buy"
 
 start_date = datetime(2023,12,15)
 end_date = datetime(2023,12, 31)
