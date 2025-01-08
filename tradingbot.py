@@ -4,9 +4,9 @@ from lumibot.brokers import Alpaca
 from lumibot.backtesting import YahooDataBacktesting 
 from lumibot.strategies.strategy import Strategy
 from lumibot.traders import Trader
-from datetime import datetime
+from datetime import datetime, timedelta
 from alpaca_trade_api import REST
-# from timedelta import Timedelta
+
 
 API_KEY = "AK6X0OICDZBZ5PFZDPM4"
 API_SECRET = "HMSsJI388Q0gO1LlOHPnDU4BowpiUdNqLKbh2A6E"
@@ -32,7 +32,15 @@ class MLTrader(Strategy):
         quantity = round(cash * self.cash_at_risk/last_price, 0)
         return cash, last_price, quantity
     
-    # def getNews():
+    def get_dates(self):
+        today = self.get_datetime()
+        three_days_prior = today - timedelta.days=3 
+        return today.strfttime('%Y-%m-%d'), three_days_prior.strfttime('%Y-%m-%d')
+
+    def getNews(self):
+        today, three_days_prior = self.get_dates()
+        news = self.api.get_news(symbol=self.symbol, start = three_days_prior, end=today)
+
     def on_trading_iteration(self):
         cash, last_price, quantity = self.position_sizing()
         if cash > last_price:       
