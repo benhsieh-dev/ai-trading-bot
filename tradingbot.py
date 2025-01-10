@@ -37,15 +37,18 @@ class MLTrader(Strategy):
         three_days_prior = today - timedelta.days=3 
         return today.strfttime('%Y-%m-%d'), three_days_prior.strfttime('%Y-%m-%d')
 
-    def getNews(self):
+    def get_news(self):
         today, three_days_prior = self.get_dates()
         news = self.api.get_news(symbol=self.symbol, start = three_days_prior, end=today)
         news = [ev.__dict__["_raw"]["headline"] for ev in news]
+        return news
 
     def on_trading_iteration(self):
         cash, last_price, quantity = self.position_sizing()
         if cash > last_price:       
             if self.last_trade == None:
+                news = self.get_news()
+                print(news)
                 order = self.create_order(
                     self.symbol,
                     10,
