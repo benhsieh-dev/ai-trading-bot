@@ -5,7 +5,8 @@ from lumibot.backtesting import YahooDataBacktesting
 from lumibot.strategies.strategy import Strategy
 from lumibot.traders import Trader
 from datetime import datetime, timedelta
-from alpaca_trade_api import RESTtra
+from alpaca_trade_api import REST
+from finbert_utils import estimate_sentiment
 import os
 
 # Use environment variables for API keys
