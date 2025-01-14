@@ -43,7 +43,8 @@ class MLTrader(Strategy):
         today, three_days_prior = self.get_dates()
         news = self.api.get_news(symbol=self.symbol, start=three_days_prior, end=today)
         news = [ev.__dict__["_raw"]["headline"] for ev in news]
-        return news
+        probability, sentiment = estimate_sentiment(news)
+        return probability, sentiment
 
     def on_trading_iteration(self):
         cash, last_price, quantity = self.position_sizing()
