@@ -50,8 +50,8 @@ class MLTrader(Strategy):
         cash, last_price, quantity = self.position_sizing()
         if cash > last_price:
             if self.last_trade is None:
-                news = self.get_sentiment()
-                print(news)
+                probability, sentiment = self.get_sentiment()
+                print(probability, sentiment)
                 order = self.create_order(
                     self.symbol,
                     quantity,
