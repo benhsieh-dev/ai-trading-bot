@@ -48,14 +48,17 @@ class MLTrader(Strategy):
 
     def on_trading_iteration(self):
         cash, last_price, quantity = self.position_sizing()
+        probability, sentiment = self.get_sentiment()
+
         if cash > last_price:
-            if self.last_trade is None:
-                probability, sentiment = self.get_sentiment()
-                print(probability, sentiment)
+              
                 order = self.create_order(
                     self.symbol,
                     quantity,
-                    "buy"
+                    "buy",
+                    type="bracket",
+                    take_profit_price=last_price*1.20,
+                    stop_loss_price=last_price*.95
                 )
                 self.submit_order(order)
 
@@ -76,7 +79,6 @@ class MLTrader(Strategy):
                     stop_price=last_price * 0.95
                 )
                 self.submit_order(stop_loss_order)
-
                 self.last_trade = "buy"
 
 start_date = datetime(2023, 12, 15)
