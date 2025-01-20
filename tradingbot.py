@@ -51,7 +51,9 @@ class MLTrader(Strategy):
         probability, sentiment = self.get_sentiment()
 
         if cash > last_price:
-              
+            if sentiment == "positive" and probability > .999:
+                if self.last_order == "sell":
+                    self.sell_all()
                 order = self.create_order(
                     self.symbol,
                     quantity,
