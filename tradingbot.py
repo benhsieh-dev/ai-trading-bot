@@ -63,6 +63,7 @@ class MLTrader(Strategy):
                     stop_loss_price=last_price*.95
                 )
                 self.submit_order(order)
+                self.last_trade = "buy"
 
                 # Create take profit order
                 take_profit_order = self.create_order(
