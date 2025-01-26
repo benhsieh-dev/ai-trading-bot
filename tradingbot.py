@@ -64,25 +64,20 @@ class MLTrader(Strategy):
                 )
                 self.submit_order(order)
                 self.last_trade = "buy"
-
-                # Create take profit order
-                take_profit_order = self.create_order(
+            
+            elif sentiment == "negative" and probability > .999:
+                if self.last_order == "buy":
+                    self.sell_all()
+                order = self.create_order(
                     self.symbol,
                     quantity,
                     "sell",
-                    limit_price=last_price * 1.20
+                    type="bracket",
+                    take_profit_price=last_price*.8,
+                    stop_loss_price=last_price*1.05
                 )
-                self.submit_order(take_profit_order)
-
-                # Create stop loss order
-                stop_loss_order = self.create_order(
-                    self.symbol,
-                    quantity,
-                    "sell",
-                    stop_price=last_price * 0.95
-                )
-                self.submit_order(stop_loss_order)
-                self.last_trade = "buy"
+                self.submit_order(order)
+                self.last_trade = "sell"
 
 start_date = datetime(2023, 12, 15)
 end_date = datetime(2023, 12, 31)
