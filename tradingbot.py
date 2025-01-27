@@ -52,7 +52,7 @@ class MLTrader(Strategy):
 
         if cash > last_price:
             if sentiment == "positive" and probability > .999:
-                if self.last_order == "sell":
+                if self.last_trade == "sell":
                     self.sell_all()
                 order = self.create_order(
                     self.symbol,
@@ -79,7 +79,7 @@ class MLTrader(Strategy):
                 self.submit_order(order)
                 self.last_trade = "sell"
 
-start_date = datetime(2023, 12, 15)
+start_date = datetime(2020, 1, 1)
 end_date = datetime(2023, 12, 31)
 
 broker = Alpaca(ALPACA_CREDS)
