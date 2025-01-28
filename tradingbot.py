@@ -42,7 +42,8 @@ class MLTrader(Strategy):
     def get_sentiment(self):
         today, three_days_prior = self.get_dates()
         news = self.api.get_news(symbol=self.symbol, start=three_days_prior, end=today)
-        news = [ev.__dict__["_raw"]["headline"] for ev in news]
+        # news = [ev.__dict__["_raw"]["headline"] for ev in news]
+        news = [ev.headline for ev in news]  # Assuming 'headline' is the correct attribute
         probability, sentiment = estimate_sentiment(news)
         return probability, sentiment
 
@@ -66,7 +67,7 @@ class MLTrader(Strategy):
                 self.last_trade = "buy"
             
             elif sentiment == "negative" and probability > .999:
-                if self.last_order == "buy":
+                if self.last_trade == "buy":
                     self.sell_all()
                 order = self.create_order(
                     self.symbol,
