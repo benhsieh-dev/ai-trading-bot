@@ -8,6 +8,9 @@ from datetime import datetime, timedelta
 from alpaca_trade_api import REST
 from finbert_utils import estimate_sentiment
 import os
+from dotenv import load_dotenv
+
+load_dotenv()  # Load environment variables from .env file
 
 # Use environment variables for API keys
 API_KEY = os.getenv("ALPACA_API_KEY")
@@ -17,7 +20,7 @@ BASE_URL = "https://paper-api.alpaca.markets"
 ALPACA_CREDS = {
     "API_KEY": API_KEY,
     "API_SECRET": API_SECRET,
-    "PAPER": True
+    "PAPER": os.getenv("PAPER", "True").lower() == "true"  # Convert to boolean
 }
 
 class MLTrader(Strategy):
@@ -85,4 +88,16 @@ end_date = datetime(2023, 12, 31)
 
 broker = Alpaca(ALPACA_CREDS)
 strategy = MLTrader(name='mlstrat', broker=broker, parameters={"symbol": "SPY", "cash_at_risk": 0.5})
-strategy.backtest(YahooDataBacktesting, start_date, end_date)
+# strategy.backtest(YahooDataBacktesting, start_date, end_date)
+
+IS_BACKTESTING = os.getenv("IS_BACKTESTING", "False").lower() == "true"
+
+if IS_BACKTESTING:
+    start_date = datetime(2020, 1, 1)
+    end_date = datetime(2023, 12, 31)
+    strategy.backtest(YahooDataBacktesting, start_date, end_date)
+else:
+    trader = Trader()
+    trader.add_strategy(strategy)
+    trader.run()
+
