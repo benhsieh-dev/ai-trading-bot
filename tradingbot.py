@@ -93,7 +93,7 @@ strategy = MLTrader(name='mlstrat', broker=broker, parameters={"symbol": "SPY", 
 IS_BACKTESTING = os.getenv("IS_BACKTESTING", "False").lower() == "true"
 
 if IS_BACKTESTING:
-    start_date = datetime(2020, 1, 1)
+    start_date = datetime(2023, 12, 1)
     end_date = datetime(2023, 12, 31)
     strategy.backtest(YahooDataBacktesting, start_date, end_date)
 else:
