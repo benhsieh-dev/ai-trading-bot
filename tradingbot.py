@@ -7,10 +7,10 @@ from lumibot.traders import Trader
 from datetime import datetime, timedelta
 from alpaca_trade_api import REST
 from finbert_utils import estimate_sentiment
-import os
-from dotenv import load_dotenv
 
-load_dotenv()  # Load environment variables from .env file
+from dotenv import load_dotenv
+import os
+load_dotenv(dotenv_path=".env")  # Explicitly specify the path
 
 # Use environment variables for API keys
 API_KEY = os.getenv("ALPACA_API_KEY")
