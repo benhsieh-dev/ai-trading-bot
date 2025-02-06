@@ -1,4 +1,7 @@
-from __future__ import annotations
+from __future__ import annotations 
+
+import asyncio
+
 
 from lumibot.brokers import Alpaca
 from lumibot.backtesting import YahooDataBacktesting
@@ -83,21 +86,30 @@ class MLTrader(Strategy):
                 self.submit_order(order)
                 self.last_trade = "sell"
 
-start_date = datetime(2023, 12, 1)
-end_date = datetime(2023, 12, 31)
+# start_date = datetime(2023, 12, 1)
+# end_date = datetime(2023, 12, 31)
+async def main():
+    broker = Alpaca(ALPACA_CREDS)
+    strategy = MLTrader(name='mlstrat', broker=broker, parameters={"symbol": "SPY", "cash_at_risk": 0.5})
 
-broker = Alpaca(ALPACA_CREDS)
-strategy = MLTrader(name='mlstrat', broker=broker, parameters={"symbol": "SPY", "cash_at_risk": 0.5})
-# strategy.backtest(YahooDataBacktesting, start_date, end_date)
+    IS_BACKTESTING = os.getenv("IS_BACKTESTING", "False").lower() == "true"
 
-IS_BACKTESTING = os.getenv("IS_BACKTESTING", "False").lower() == "true"
+    if IS_BACKTESTING:
+        start_date = datetime(2023, 12, 1)
+        end_date = datetime(2023, 12, 31)
+        strategy.backtest(YahooDataBacktesting, start_date, end_date)
+    else:
+        trader = Trader()
+        trader.add_strategy(strategy)
+        trader.run()
 
-if IS_BACKTESTING:
-    start_date = datetime(2023, 12, 1)
-    end_date = datetime(2023, 12, 31)
-    strategy.backtest(YahooDataBacktesting, start_date, end_date)
-else:
-    trader = Trader()
-    trader.add_strategy(strategy)
-    trader.run()
+if __name__ == "__main__":
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError as e:
+        if str(e).startswith("There is no current event loop in thread"):
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+    loop.run_until_complete(main())
 
