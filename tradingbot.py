@@ -18,7 +18,7 @@ load_dotenv(dotenv_path=".env")  # Explicitly specify the path
 # Use environment variables for API keys
 API_KEY = os.getenv("ALPACA_API_KEY")
 API_SECRET = os.getenv("ALPACA_API_SECRET")
-BASE_URL = "https://paper-api.alpaca.markets"
+BASE_URL = "https://paper-api.alpaca.markets/v2"
 
 ALPACA_CREDS = {
     "API_KEY": API_KEY,
@@ -105,7 +105,7 @@ async def main():
 
 if __name__ == "__main__":
     try:
-        loop = asyncio.get_event_loop()
+        asyncio.run(main())
     except RuntimeError as e:
         if str(e).startswith("There is no current event loop in thread"):
             loop = asyncio.new_event_loop()
