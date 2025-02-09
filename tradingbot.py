@@ -31,7 +31,7 @@ class MLTrader(Strategy):
         self.symbol = symbol
         self.sleeptime = "24H"
         self.last_trade = None
-        self.cash_at_risk = cash_at_risk  # Fixed typo
+        self.cash_at_risk = cash_at_risk  
         self.api = REST(base_url=BASE_URL, key_id=API_KEY, secret_key=API_SECRET)
 
     def position_sizing(self):
@@ -42,13 +42,12 @@ class MLTrader(Strategy):
 
     def get_dates(self):
         today = self.get_datetime()
-        three_days_prior = today - timedelta(days=3)  # Fixed timedelta usage
+        three_days_prior = today - timedelta(days=3)  
         return today.strftime('%Y-%m-%d'), three_days_prior.strftime('%Y-%m-%d')
 
     def get_sentiment(self):
         today, three_days_prior = self.get_dates()
         news = self.api.get_news(symbol=self.symbol, start=three_days_prior, end=today)
-        # news = [ev.__dict__["_raw"]["headline"] for ev in news]
         news = [ev.headline for ev in news]  # Assuming 'headline' is the correct attribute
         probability, sentiment = estimate_sentiment(news)
         return probability, sentiment
@@ -86,8 +85,6 @@ class MLTrader(Strategy):
                 self.submit_order(order)
                 self.last_trade = "sell"
 
-# start_date = datetime(2023, 12, 1)
-# end_date = datetime(2023, 12, 31)
 async def main():
     broker = Alpaca(ALPACA_CREDS)
     strategy = MLTrader(name='mlstrat', broker=broker, parameters={"symbol": "SPY", "cash_at_risk": 0.5})
@@ -95,7 +92,7 @@ async def main():
     IS_BACKTESTING = os.getenv("IS_BACKTESTING", "False").lower() == "true"
 
     if IS_BACKTESTING:
-        start_date = datetime(2023, 12, 1)
+        start_date = datetime(2023, 1, 1)
         end_date = datetime(2023, 12, 31)
         strategy.backtest(YahooDataBacktesting, start_date, end_date)
     else:
