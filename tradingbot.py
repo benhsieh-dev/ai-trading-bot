@@ -57,7 +57,7 @@ class MLTrader(Strategy):
         probability, sentiment = self.get_sentiment()
 
         if cash > last_price:
-            if sentiment == "positive" and probability > .999:
+            if sentiment == "positive" and probability > .700:
                 if self.last_trade == "sell":
                     self.sell_all()
                 order = self.create_order(
@@ -65,7 +65,7 @@ class MLTrader(Strategy):
                     quantity,
                     "buy",
                     type="bracket",
-                    take_profit_price=last_price*1.20,
+                    take_profit_price=last_price*2.00,
                     stop_loss_price=last_price*.95
                 )
                 self.submit_order(order)
