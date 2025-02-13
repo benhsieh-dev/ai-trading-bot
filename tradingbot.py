@@ -48,7 +48,7 @@ class MLTrader(Strategy):
     def get_sentiment(self):
         today, three_days_prior = self.get_dates()
         news = self.api.get_news(symbol=self.symbol, start=three_days_prior, end=today)
-        news = [ev.headline for ev in news]  # Assuming 'headline' is the correct attribute
+        news = [ev.headline for ev in news]  
         probability, sentiment = estimate_sentiment(news)
         return probability, sentiment
 
@@ -58,8 +58,6 @@ class MLTrader(Strategy):
 
         if cash > last_price:
             if sentiment == "positive" and probability > .700:
-                if self.last_trade == "sell":
-                    self.sell_all()
                 order = self.create_order(
                     self.symbol,
                     quantity,
@@ -70,20 +68,18 @@ class MLTrader(Strategy):
                 )
                 self.submit_order(order)
                 self.last_trade = "buy"
-            
-            # elif sentiment == "negative" and probability > .999:
-            #     if self.last_trade == "buy":
-            #         self.sell_all()
-            #     order = self.create_order(
-            #         self.symbol,
-            #         quantity,
-            #         "sell",
-            #         type="bracket",
-            #         take_profit_price=last_price*.8,
-            #         stop_loss_price=last_price*1.05
-            #     )
-            #     self.submit_order(order)
-            #     self.last_trade = "sell"
+                
+            elif sentiment == "negative" and probability > .999:    
+                order = self.create_order(
+                    self.symbol,
+                    quantity,
+                    "buy",
+                    type="bracket",
+                    take_profit_price=last_price*2,
+                    stop_loss_price=last_price*.50
+                )
+                self.submit_order(order)
+                self.last_trade = "buy"
 
 async def main():
     broker = Alpaca(ALPACA_CREDS)
