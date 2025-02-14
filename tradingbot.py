@@ -27,7 +27,7 @@ ALPACA_CREDS = {
 }
 
 class MLTrader(Strategy):
-    def initialize(self, symbol: str = "SPY", cash_at_risk: float = 0.5):
+    def initialize(self, symbol: str = "QQQ", cash_at_risk: float = 0.5):
         self.symbol = symbol
         self.sleeptime = "24H"
         self.last_trade = None
