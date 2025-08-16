@@ -27,17 +27,17 @@ ALPACA_CREDS = {
 }
 
 class MLTrader(Strategy):
-    def initialize(self, symbol: str = "QQQ", cash_at_risk: float = 0.5):
+    def initialize(self, symbol: str = "QQQ", position_size: float = 0.5):
         self.symbol = symbol
         self.sleeptime = "24H"
         self.last_trade = None
-        self.cash_at_risk = cash_at_risk  
+        self.position_size = position_size  
         self.api = REST(base_url=BASE_URL, key_id=API_KEY, secret_key=API_SECRET)
 
     def position_sizing(self):
         cash = self.get_cash()
         last_price = self.get_last_price(self.symbol)
-        quantity = round(cash * self.cash_at_risk / last_price, 0)
+        quantity = round(cash * self.position_size / last_price, 0)
         return cash, last_price, quantity
 
     def get_dates(self):
@@ -83,7 +83,7 @@ class MLTrader(Strategy):
 
 async def main():
     broker = Alpaca(ALPACA_CREDS)
-    strategy = MLTrader(name='mlstrat', broker=broker, parameters={"symbol": "SPY", "cash_at_risk": 0.5})
+    strategy = MLTrader(name='mlstrat', broker=broker, parameters={"symbol": "SPY", "position_size": 0.5})
 
     IS_BACKTESTING = os.getenv("IS_BACKTESTING", "False").lower() == "true"
 

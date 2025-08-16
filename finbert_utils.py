@@ -1,23 +1,27 @@
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
-import torch
+# Mock implementation for development without ML dependencies
 from typing import Tuple 
-device = "cuda:0" if torch.cuda.is_available() else "cpu"
+import random
 
-tokenizer = AutoTokenizer.from_pretrained("ProsusAI/finbert")
-model = AutoModelForSequenceClassification.from_pretrained("ProsusAI/finbert").to(device)
 labels = ["positive", "negative", "neutral"]
 
 def estimate_sentiment(news):
-    if news:
-        tokens = tokenizer(news, return_tensors="pt", padding=True).to(device)
-
-        result = model(tokens["input_ids"], attention_mask=tokens["attention_mask"])[
-            "logits"
-        ]
-        result = torch.nn.functional.softmax(torch.sum(result, 0), dim=-1)
-        probability = result[torch.argmax(result)]
-        sentiment = labels[torch.argmax(result)]
-        return probability, sentiment
+    """
+    Mock sentiment analysis function for development.
+    Replace with actual FinBERT implementation when ML dependencies are available.
+    """
+    if news and len(news) > 0:
+        # Simple mock logic based on keywords
+        text = " ".join(news).lower()
+        
+        if any(word in text for word in ["good", "great", "profit", "gain", "up", "rise", "bull"]):
+            return 0.85, "positive"
+        elif any(word in text for word in ["bad", "loss", "down", "fall", "bear", "crash"]):
+            return 0.75, "negative"
+        else:
+            # Random sentiment for neutral cases
+            sentiment = random.choice(labels)
+            probability = random.uniform(0.6, 0.9)
+            return probability, sentiment
     else:
         return 0, labels[-1]
 

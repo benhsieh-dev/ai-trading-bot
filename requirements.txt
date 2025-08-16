@@ -1,0 +1,7 @@
+flask
+lumibot
+alpaca-trade-api
+transformers
+torch
+python-dotenv
+asyncio
