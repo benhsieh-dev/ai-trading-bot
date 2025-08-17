@@ -42,13 +42,18 @@ Comprehensive financial education platform with AI-powered trading strategies an
 
 2. **Configure API keys:**
    - Get your Alpaca API keys from https://alpaca.markets
-   - Update `.env` file with your credentials:
+   - Copy the example file and add your credentials:
+   ```bash
+   cp .env.example .env
    ```
-   ALPACA_API_KEY=your_api_key_here
-   ALPACA_API_SECRET=your_secret_key_here
+   - Edit `.env` file with your actual keys:
+   ```bash
+   ALPACA_API_KEY=your_actual_api_key_here
+   ALPACA_API_SECRET=your_actual_secret_key_here
    PAPER=True
    IS_BACKTESTING=False
    ```
+   - **⚠️ IMPORTANT**: Never commit the `.env` file to git
 
 3. **Start the web server:**
    ```bash
