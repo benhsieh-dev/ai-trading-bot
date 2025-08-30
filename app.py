@@ -201,15 +201,43 @@ def get_sentiment():
 def get_portfolio():
     if current_strategy and bot_running:
         try:
-            # Mock portfolio data for demonstration since full trader isn't running
-            cash = 10000.0  # Mock cash amount
-            positions = []  # Mock empty positions
+            # Get real portfolio data from strategy
+            cash = current_strategy.get_cash()
+            raw_positions = current_strategy.get_positions()
+            
+            # Format positions for frontend display
+            positions = []
+            for position in raw_positions:
+                # Get current market price for P&L calculation
+                current_price = current_strategy.get_last_price(position.symbol)
+                market_value = position.quantity * current_price
+                
+                # Calculate unrealized P&L
+                if hasattr(position, 'avg_fill_price') and position.avg_fill_price:
+                    entry_price = position.avg_fill_price
+                    unrealized_pnl = (current_price - entry_price) * position.quantity
+                    unrealized_pnl_percent = (unrealized_pnl / (entry_price * abs(position.quantity))) * 100
+                else:
+                    entry_price = current_price
+                    unrealized_pnl = 0
+                    unrealized_pnl_percent = 0
+                
+                positions.append({
+                    'symbol': position.symbol,
+                    'quantity': position.quantity,
+                    'current_price': round(current_price, 2),
+                    'market_value': round(market_value, 2),
+                    'entry_price': round(entry_price, 2),
+                    'unrealized_pnl': round(unrealized_pnl, 2),
+                    'unrealized_pnl_percent': round(unrealized_pnl_percent, 2),
+                    'entry_date': getattr(position, 'created_at', 'N/A')
+                })
             
             trading_data['cash'] = cash
             trading_data['positions'] = positions
             
             return jsonify({
-                'cash': cash,
+                'cash': round(cash, 2),
                 'positions': positions
             })
         except Exception as e:
