@@ -454,4 +454,11 @@ def generate_mock_options(symbol, current_price):
     return strikes
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5001, use_reloader=True)
+    port = int(os.environ.get('PORT', 5001))
+    flask_env = os.environ.get('FLASK_ENV', 'development')
+    debug_mode = flask_env == 'development'
+    
+    if flask_env == 'production':
+        app.run(host='0.0.0.0', port=port)
+    else:
+        app.run(debug=debug_mode, host='0.0.0.0', port=port, use_reloader=debug_mode)

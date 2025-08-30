@@ -1,7 +1,8 @@
-flask
-lumibot
-alpaca-trade-api
-transformers
-torch
-python-dotenv
-asyncio
+flask>=2.3.0
+lumibot>=3.0.0
+alpaca-trade-api>=3.0.0
+transformers>=4.30.0
+torch>=2.0.0
+python-dotenv>=1.0.0
+requests>=2.31.0
+gunicorn>=21.0.0

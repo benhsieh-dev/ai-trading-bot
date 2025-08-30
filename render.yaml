@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: ai-trading-bot
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: PAPER
+        value: "True"
+      - key: ALPACA_API_KEY
+        sync: false
+      - key: ALPACA_API_SECRET
+        sync: false
+    healthCheckPath: /api/status
