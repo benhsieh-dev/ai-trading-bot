@@ -15,6 +15,14 @@ from dotenv import load_dotenv
 import os
 load_dotenv(dotenv_path=".env")  # Explicitly specify the path
 
+# Import database manager for trade persistence
+try:
+    from database import db_manager
+    DB_AVAILABLE = True
+except ImportError:
+    DB_AVAILABLE = False
+    print("Database module not available - trades will not be persisted")
+
 # Use environment variables for API keys
 API_KEY = os.getenv("ALPACA_API_KEY")
 API_SECRET = os.getenv("ALPACA_API_SECRET")
@@ -69,6 +77,18 @@ class MLTrader(Strategy):
                 self.submit_order(order)
                 self.last_trade = "buy"
                 
+                # Save trade to database
+                if DB_AVAILABLE and db_manager.is_connected():
+                    trade_data = {
+                        "symbol": self.symbol,
+                        "side": "buy",
+                        "quantity": quantity,
+                        "price": last_price,
+                        "sentiment": sentiment,
+                        "probability": probability
+                    }
+                    db_manager.save_trade(trade_data)
+                
             elif sentiment == "negative" and probability > .999:    
                 order = self.create_order(
                     self.symbol,
@@ -80,6 +100,18 @@ class MLTrader(Strategy):
                 )
                 self.submit_order(order)
                 self.last_trade = "buy"
+                
+                # Save trade to database
+                if DB_AVAILABLE and db_manager.is_connected():
+                    trade_data = {
+                        "symbol": self.symbol,
+                        "side": "buy",
+                        "quantity": quantity,
+                        "price": last_price,
+                        "sentiment": sentiment,
+                        "probability": probability
+                    }
+                    db_manager.save_trade(trade_data)
 
 async def main():
     broker = Alpaca(ALPACA_CREDS)

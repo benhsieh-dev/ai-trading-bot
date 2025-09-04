@@ -8,6 +8,7 @@ from tradingbot import MLTrader, ALPACA_CREDS, API_KEY, API_SECRET, BASE_URL
 from lumibot.brokers import Alpaca
 from lumibot.traders import Trader
 from lumibot.backtesting import YahooDataBacktesting
+from database import db_manager
 import random
 import requests
 
@@ -199,6 +200,8 @@ def get_sentiment():
 
 @app.route('/api/portfolio')
 def get_portfolio():
+    user_id = "default"  # Could be expanded for multi-user support
+    
     if current_strategy and bot_running:
         try:
             # Get real portfolio data from strategy
@@ -233,6 +236,10 @@ def get_portfolio():
                     'entry_date': getattr(position, 'created_at', 'N/A')
                 })
             
+            # Save to database for persistence
+            if db_manager.is_connected():
+                db_manager.update_portfolio(user_id, cash, positions)
+            
             trading_data['cash'] = cash
             trading_data['positions'] = positions
             
@@ -243,6 +250,15 @@ def get_portfolio():
         except Exception as e:
             return jsonify({'error': f'Failed to get portfolio: {str(e)}'}), 500
     else:
+        # Try to get portfolio from database when bot isn't running
+        if db_manager.is_connected():
+            db_portfolio = db_manager.get_portfolio(user_id)
+            if db_portfolio:
+                return jsonify({
+                    'cash': db_portfolio.get('cash', 0),
+                    'positions': db_portfolio.get('positions', [])
+                })
+        
         return jsonify({
             'cash': 0,
             'positions': []
