@@ -13,8 +13,22 @@ class DatabaseManager:
         self.connect()
     
     def connect(self):
+        if not self.connection_string:
+            print("MongoDB URI not configured - running without database persistence")
+            self.client = None
+            self.db = None
+            return
+            
         try:
-            self.client = MongoClient(self.connection_string)
+            # Improved connection with timeout settings
+            self.client = MongoClient(
+                self.connection_string,
+                serverSelectionTimeoutMS=10000,  # 10 second timeout
+                connectTimeoutMS=10000,
+                socketTimeoutMS=10000,
+                retryWrites=True,
+                w='majority'
+            )
             self.db = self.client.trading_bot
             # Test connection
             self.client.admin.command('ping')
