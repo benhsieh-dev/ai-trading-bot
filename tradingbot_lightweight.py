@@ -62,7 +62,7 @@ class LightweightMLTrader:
                 'cash': float(account.cash),
                 'portfolio_value': float(account.portfolio_value),
                 'buying_power': float(account.buying_power),
-                'day_trade_count': int(account.day_trade_count)
+                'day_trade_count': getattr(account, 'day_trade_count', 0)  # Safe access with default
             }
         except Exception as e:
             print(f"Error getting account info: {e}")
