@@ -1,21 +1,21 @@
 # Web Framework
-flask==3.0.3
-gunicorn==22.0.0
+flask>=3.0.0,<4.0.0
+gunicorn>=22.0.0,<23.0.0
 
 # Core Trading Stack
-alpaca-trade-api==3.2.0     # Direct Alpaca broker API
-yfinance==0.2.61             # Market data and backtesting
-pandas==2.0.3               # Data analysis
-numpy==1.24.4               # Mathematical operations
+alpaca-trade-api>=3.2.0,<4.0.0     # Direct Alpaca broker API
+yfinance>=0.2.60,<0.3.0             # Market data and backtesting
+pandas>=2.0.0,<3.0.0                # Data analysis
+numpy>=1.24.0,<2.0.0                # Mathematical operations
 
 # Lightweight ML/Sentiment Analysis  
-textblob==0.18.0            # Simple NLP sentiment analysis
-scikit-learn==1.3.2         # Lightweight ML algorithms
+textblob>=0.18.0,<0.19.0            # Simple NLP sentiment analysis
+scikit-learn>=1.3.0,<2.0.0          # Lightweight ML algorithms
 
 # Technical Analysis (optional - lightweight)
-ta==0.12.0                  # Technical indicators
+ta>=0.12.0,<1.0.0                   # Technical indicators
 
 # Database and Utilities
-pymongo==4.8.0              # MongoDB connection
-python-dotenv==1.0.1        # Environment variables
-requests==2.32.3            # HTTP requests
+pymongo>=4.8.0,<5.0.0               # MongoDB connection
+python-dotenv>=1.0.0,<2.0.0         # Environment variables
+requests>=2.32.0,<3.0.0             # HTTP requests
