@@ -4,7 +4,7 @@ gunicorn>=22.0.0,<23.0.0
 
 # Core Trading Stack
 alpaca-trade-api>=3.2.0,<4.0.0     # Direct Alpaca broker API
-yfinance>=0.2.60,<0.3.0             # Market data and backtesting
+yfinance>=0.2.40,<0.2.60            # Market data and backtesting (avoid websockets conflict)
 pandas>=2.0.0,<3.0.0                # Data analysis
 numpy>=1.24.0,<2.0.0                # Mathematical operations
 
