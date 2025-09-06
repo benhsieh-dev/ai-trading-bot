@@ -1,9 +1,12 @@
+# Web framework
 flask>=2.3.0
-lumibot>=3.0.0
+gunicorn>=21.0.0
+
+# Core trading dependencies  
 alpaca-trade-api>=3.0.0
-transformers>=4.30.0
-torch>=2.0.0
+pymongo>=4.0.0
 python-dotenv>=1.0.0
 requests>=2.31.0
-gunicorn>=21.0.0
-pymongo>=4.0.0
+
+# Trading bot framework (install after core deps)
+lumibot>=3.0.0

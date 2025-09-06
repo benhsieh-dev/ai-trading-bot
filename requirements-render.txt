@@ -1,0 +1,19 @@
+flask>=2.3.0
+gunicorn>=21.0.0
+alpaca-trade-api>=3.0.0
+pymongo>=4.0.0
+python-dotenv>=1.0.0
+requests>=2.31.0
+
+# Lumibot core dependencies (manually specified to avoid conflicts)
+pandas>=2.0.0
+numpy>=1.20.0
+matplotlib>=3.3.3
+plotly>=5.0.0
+yfinance>=0.2.61
+sqlalchemy
+bcrypt
+apscheduler>=3.10.4
+pytz
+tabulate
+tqdm
