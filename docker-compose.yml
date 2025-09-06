@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  trading-bot:
+    build: .
+    container_name: ai-trading-bot
+    ports:
+      - "5001:5001"
+    environment:
+      - PORT=5001
+      - FLASK_ENV=production
+      # Uncomment and set your actual API keys for real trading
+      # - ALPACA_API_KEY=your_key_here
+      # - ALPACA_API_SECRET=your_secret_here
+      # - MONGODB_URI=your_mongodb_connection_string
+    volumes:
+      # Optional: Mount a volume for logs
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: MongoDB service for local development
+  # Uncomment if you want to run MongoDB locally instead of using Atlas
+  # mongodb:
+  #   image: mongo:6.0
+  #   container_name: ai-trading-bot-db
+  #   environment:
+  #     - MONGO_INITDB_ROOT_USERNAME=admin
+  #     - MONGO_INITDB_ROOT_PASSWORD=password123
+  #   ports:
+  #     - "27017:27017"
+  #   volumes:
+  #     - mongodb_data:/data/db
+  #   restart: unless-stopped
+
+# volumes:
+#   mongodb_data:
