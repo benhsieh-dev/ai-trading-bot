@@ -1,0 +1,118 @@
+/* Chart and visualization styles */
+.chart-container {
+    background: white;
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-lg);
+    margin: var(--spacing-lg) 0;
+    box-shadow: var(--shadow-light);
+    border: 1px solid var(--gray-border);
+}
+
+.chart-container h5 {
+    color: var(--text-dark);
+    margin-bottom: var(--spacing-md);
+}
+
+.performance-chart {
+    display: flex;
+    align-items: end;
+    height: 200px;
+    background: linear-gradient(to top, var(--gray-light) 0%, #ffffff 100%);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-lg);
+    margin: var(--spacing-md) 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.chart-bar {
+    flex: 1;
+    margin: 0 var(--spacing-sm);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+
+.bar {
+    width: 60px;
+    border-radius: 4px 4px 0 0;
+    transition: all 0.3s ease;
+    position: relative;
+    min-height: 4px;
+}
+
+.bar-positive {
+    background: linear-gradient(to top, var(--primary-green), var(--dark-green));
+}
+
+.bar-negative {
+    background: linear-gradient(to top, var(--primary-red), var(--dark-red));
+}
+
+.bar-label {
+    margin-top: var(--spacing-sm);
+    font-weight: bold;
+    font-size: var(--font-size-md);
+    color: var(--text-dark);
+}
+
+.bar-value {
+    position: absolute;
+    top: -25px;
+    font-size: var(--font-size-sm);
+    font-weight: bold;
+    color: var(--text-dark);
+    white-space: nowrap;
+}
+
+.chart-grid {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+}
+
+.grid-line {
+    position: absolute;
+    left: var(--spacing-lg);
+    right: var(--spacing-lg);
+    height: 1px;
+    background: rgba(149, 165, 166, 0.3);
+}
+
+/* P&L Chart specific styles */
+.pnl-chart {
+    height: 200px;
+    background: var(--gray-light);
+    border-radius: var(--border-radius-md);
+    position: relative;
+    overflow: hidden;
+}
+
+.pnl-chart .placeholder {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--gray-medium);
+}
+
+.pnl-metrics {
+    margin-top: var(--spacing-md);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: var(--spacing-sm);
+    text-align: center;
+}
+
+.pnl-metric {
+    font-weight: bold;
+}
+
+.pnl-metric-label {
+    font-size: var(--font-size-sm);
+    color: var(--gray-medium);
+}
