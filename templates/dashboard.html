@@ -90,44 +90,64 @@
                 
                 <div class="controls">
                     <div class="control-group">
-                        <h3>Trading Setup 
-                            <span style="color: #7f8c8d; font-size: 12px; cursor: help;" title="Configure your trading parameters">ⓘ</span>
+                        <h3>Stock Lookup & Trading 
+                            <span style="color: #7f8c8d; font-size: 12px; cursor: help;" title="Look up stock prices and place orders">ⓘ</span>
                         </h3>
-                        <div class="form-group">
-                            <label for="symbol">Stock Symbol</label>
-                            <input type="text" id="symbol" value="SPY" placeholder="e.g., SPY, AAPL, NVDA">
-                            <small style="color: #7f8c8d; font-size: 11px; display: block; margin-top: 3px;">
-                                Popular: SPY, QQQ, AAPL, NVDA, MSFT, TSLA
-                            </small>
+                        <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-bottom: 15px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="symbol">Stock Symbol</label>
+                                <input type="text" id="symbol" value="SPY" placeholder="e.g., SPY, AAPL, NVDA" style="text-transform: uppercase;">
+                                <small style="color: #7f8c8d; font-size: 11px; display: block; margin-top: 3px;">
+                                    Popular: SPY, QQQ, AAPL, NVDA, MSFT, TSLA
+                                </small>
+                            </div>
+                            <button onclick="lookupPrice()" style="align-self: end; margin-bottom: 18px; background: #3498db; padding: 10px 15px;">📊 Get Price</button>
                         </div>
-                        <div class="form-group">
-                            <label for="positionSize">Position Size</label>
-                            <input type="number" id="positionSize" value="0.5" min="0.1" max="1" step="0.1">
-                            <small style="color: #7f8c8d; font-size: 11px; display: block; margin-top: 3px;">
-                                0.3 = Conservative • 0.5 = Balanced • 0.8 = Aggressive
-                            </small>
+                        
+                        <!-- Price Display -->
+                        <div id="priceDisplay" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center; display: none;">
+                            <div style="font-size: 24px; font-weight: bold; color: #2c3e50;" id="currentPrice">$0.00</div>
+                            <div style="font-size: 12px; color: #7f8c8d; margin-top: 5px;" id="priceSource">Current Price</div>
+                        </div>
+                        
+                        <!-- Manual Trading Controls -->
+                        <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e9ecef;">
+                            <h4 style="color: #2c3e50; margin-bottom: 15px;">📈 Place Order</h4>
+                            <div class="form-group">
+                                <label for="shareQuantity">Number of Shares</label>
+                                <input type="number" id="shareQuantity" value="10" min="1" max="1000" step="1">
+                                <small style="color: #7f8c8d; font-size: 11px; display: block; margin-top: 3px;">
+                                    Enter the number of shares you want to buy or sell
+                                </small>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                                <button onclick="placeBuyOrder()" style="background: #27ae60; font-weight: bold;">🛒 BUY</button>
+                                <button onclick="placeSellOrder()" style="background: #e74c3c; font-weight: bold;">💰 SELL</button>
+                            </div>
+                            <div id="orderPreview" style="background: #f8f9fa; padding: 10px; border-radius: 5px; font-size: 12px; color: #666; display: none;">
+                                Order preview will appear here
+                            </div>
                         </div>
                     </div>
                     
                     <div class="control-group">
-                        <h3>Trading Controls</h3>
+                        <h3>AI Trading Bot Controls</h3>
+                        <p style="margin-bottom: 15px; color: #666; font-size: 14px;">Start/stop automated AI trading (uses position sizing)</p>
+                        <div class="form-group">
+                            <label for="positionSize">Position Size (for AI bot only)</label>
+                            <input type="number" id="positionSize" value="0.5" min="0.1" max="1" step="0.1">
+                            <small style="color: #7f8c8d; font-size: 11px; display: block; margin-top: 3px;">
+                                0.3 = Conservative • 0.5 = Balanced • 0.8 = Aggressive (% of portfolio)
+                            </small>
+                        </div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-                            <button onclick="startBot()" id="startBtn" style="background: #27ae60;">🚀 Start Trading</button>
-                            <button onclick="stopBot()" id="stopBtn" class="btn-danger" disabled>⏹️ Stop Trading</button>
+                            <button onclick="startBot()" id="startBtn" style="background: #27ae60;">🚀 Start AI Bot</button>
+                            <button onclick="stopBot()" id="stopBtn" class="btn-danger" disabled>⏹️ Stop AI Bot</button>
                         </div>
                         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
                             <button onclick="refreshSentiment()" style="font-size: 12px; padding: 8px;">📊 Sentiment</button>
                             <button onclick="refreshPortfolio()" style="font-size: 12px; padding: 8px;">💰 Portfolio</button>
                             <button onclick="refreshStatus()" style="font-size: 12px; padding: 8px;">🔄 Status</button>
-                        </div>
-                    </div>
-                    
-                    <div class="control-group">
-                        <h3>Manual Trading</h3>
-                        <p style="margin-bottom: 15px; color: #666; font-size: 14px;">Place manual orders based on your analysis</p>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                            <button onclick="manualBuy()" style="background: #27ae60;">📈 Manual Buy</button>
-                            <button onclick="manualSell()" style="background: #e74c3c;">📉 Manual Sell</button>
                         </div>
                     </div>
                 </div>
@@ -682,21 +702,141 @@
             await runBacktestWithConfig(config);
         }
         
-        // Manual Trading Functions
-        async function manualBuy() {
-            const symbol = document.getElementById('symbol').value;
-            const positionSize = parseFloat(document.getElementById('positionSize').value);
+        // Stock Price Lookup Function
+        async function lookupPrice() {
+            const symbol = document.getElementById('symbol').value.toUpperCase();
+            if (!symbol) {
+                showAlert('Please enter a stock symbol', 'error');
+                return;
+            }
             
-            addLog(`📈 Manual BUY order for ${symbol} (${positionSize * 100}% position)`);
-            showAlert(`Manual BUY order placed for ${symbol}!`);
+            addLog(`📊 Looking up price for ${symbol}...`);
+            
+            try {
+                const response = await fetch(`/api/price/${symbol}`);
+                const data = await response.json();
+                
+                if (response.ok && data.price) {
+                    // Show price display
+                    document.getElementById('priceDisplay').style.display = 'block';
+                    document.getElementById('currentPrice').textContent = `$${data.price}`;
+                    document.getElementById('priceSource').textContent = data.note || `${data.source} - Last Price`;
+                    
+                    // Update order preview
+                    updateOrderPreview();
+                    
+                    addLog(`✅ ${symbol}: $${data.price} (${data.source})`);
+                    showAlert(`Price loaded: ${symbol} at $${data.price}`);
+                } else {
+                    addLog(`❌ Failed to get price for ${symbol}: ${data.error}`);
+                    showAlert('Failed to get stock price', 'error');
+                }
+            } catch (error) {
+                addLog(`❌ Price lookup error: ${error.message}`);
+                showAlert('Failed to get stock price', 'error');
+            }
         }
         
-        async function manualSell() {
-            const symbol = document.getElementById('symbol').value;
+        // Manual Trading Functions
+        async function placeBuyOrder() {
+            const symbol = document.getElementById('symbol').value.toUpperCase();
+            const quantity = parseInt(document.getElementById('shareQuantity').value);
             
-            addLog(`📉 Manual SELL order for ${symbol}`);
-            showAlert(`Manual SELL order placed for ${symbol}!`);
+            if (!symbol || !quantity || quantity <= 0) {
+                showAlert('Please enter valid symbol and quantity', 'error');
+                return;
+            }
+            
+            addLog(`🛒 Placing BUY order: ${quantity} shares of ${symbol}...`);
+            
+            try {
+                const response = await fetch('/api/trade', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        symbol: symbol,
+                        side: 'buy',
+                        quantity: quantity
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addLog(`✅ ${data.message}`);
+                    showAlert('Buy order executed successfully!');
+                    refreshPortfolio(); // Update portfolio after trade
+                } else {
+                    addLog(`❌ Buy order failed: ${data.error}`);
+                    showAlert('Buy order failed', 'error');
+                }
+            } catch (error) {
+                addLog(`❌ Buy order error: ${error.message}`);
+                showAlert('Buy order failed', 'error');
+            }
         }
+        
+        async function placeSellOrder() {
+            const symbol = document.getElementById('symbol').value.toUpperCase();
+            const quantity = parseInt(document.getElementById('shareQuantity').value);
+            
+            if (!symbol || !quantity || quantity <= 0) {
+                showAlert('Please enter valid symbol and quantity', 'error');
+                return;
+            }
+            
+            addLog(`💰 Placing SELL order: ${quantity} shares of ${symbol}...`);
+            
+            try {
+                const response = await fetch('/api/trade', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        symbol: symbol,
+                        side: 'sell',
+                        quantity: quantity
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addLog(`✅ ${data.message}`);
+                    showAlert('Sell order executed successfully!');
+                    refreshPortfolio(); // Update portfolio after trade
+                } else {
+                    addLog(`❌ Sell order failed: ${data.error}`);
+                    showAlert('Sell order failed', 'error');
+                }
+            } catch (error) {
+                addLog(`❌ Sell order error: ${error.message}`);
+                showAlert('Sell order failed', 'error');
+            }
+        }
+        
+        // Update order preview when price or quantity changes
+        function updateOrderPreview() {
+            const priceText = document.getElementById('currentPrice').textContent;
+            const price = parseFloat(priceText.replace('$', ''));
+            const quantity = parseInt(document.getElementById('shareQuantity').value) || 0;
+            
+            if (price > 0 && quantity > 0) {
+                const totalCost = price * quantity;
+                document.getElementById('orderPreview').style.display = 'block';
+                document.getElementById('orderPreview').innerHTML = 
+                    `Preview: ${quantity} shares × $${price.toFixed(2)} = <strong>$${totalCost.toFixed(2)}</strong> total`;
+            } else {
+                document.getElementById('orderPreview').style.display = 'none';
+            }
+        }
+        
+        // Auto-update preview when quantity changes
+        document.addEventListener('DOMContentLoaded', function() {
+            const quantityInput = document.getElementById('shareQuantity');
+            if (quantityInput) {
+                quantityInput.addEventListener('input', updateOrderPreview);
+            }
+        });
         
         // Sentiment Analysis Function
         async function analyzeSentiment() {

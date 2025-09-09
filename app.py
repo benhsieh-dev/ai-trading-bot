@@ -284,14 +284,18 @@ def get_portfolio():
                 # Format positions for frontend
                 positions = []
                 for pos in raw_positions:
+                    quantity = pos.get('quantity', 0)
+                    market_value = pos.get('market_value', 0)
+                    current_price = round(market_value / max(abs(quantity), 1), 2) if quantity != 0 else 0
+                    
                     positions.append({
-                        'symbol': pos['symbol'],
-                        'quantity': pos['quantity'],
-                        'current_price': round(pos.get('market_value', 0) / max(pos['quantity'], 1), 2),
-                        'market_value': round(pos['market_value'], 2),
-                        'entry_price': round(pos['avg_entry_price'], 2),
-                        'unrealized_pnl': round(pos['unrealized_pl'], 2),
-                        'unrealized_pnl_percent': round(pos['unrealized_plpc'], 2),
+                        'symbol': pos.get('symbol', ''),
+                        'quantity': quantity,
+                        'current_price': current_price,
+                        'market_value': round(market_value, 2),
+                        'entry_price': round(pos.get('avg_entry_price', 0), 2),
+                        'unrealized_pnl': round(pos.get('unrealized_pl', 0), 2),
+                        'unrealized_pnl_percent': round(pos.get('unrealized_plpc', 0), 2),
                         'entry_date': 'Recent'
                     })
                 
@@ -302,9 +306,13 @@ def get_portfolio():
                 cash = current_strategy.get_cash()
                 positions = []
             
-            # Save to database
+            # Save to database (with error handling)
             if db_manager.is_connected():
-                db_manager.update_portfolio(user_id, cash, positions)
+                try:
+                    db_manager.update_portfolio(user_id, cash, positions)
+                except Exception as db_error:
+                    print(f"Database save failed (non-critical): {db_error}")
+                    # Continue without failing the API call
             
             trading_data['cash'] = cash
             trading_data['positions'] = positions
@@ -316,6 +324,9 @@ def get_portfolio():
             })
             
         except Exception as e:
+            print(f"Portfolio API error: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return jsonify({'error': f'Failed to get portfolio: {str(e)}'}), 500
     else:
         # Database fallback when bot isn't running
@@ -401,6 +412,89 @@ def run_backtest():
         
     except Exception as e:
         return jsonify({'error': f'Failed to start backtest: {str(e)}'}), 500
+
+@app.route('/api/price/<symbol>')
+def get_stock_price(symbol):
+    """Get current stock price for a symbol"""
+    try:
+        # Always try to get real market price first
+        trader = create_trader(symbol=symbol)
+        current_price = trader.get_current_price(symbol)
+        
+        if current_price > 0:
+            return jsonify({
+                'symbol': symbol.upper(),
+                'price': round(current_price, 2),
+                'source': 'market_data',
+                'note': 'Real market price from Alpaca/Yahoo Finance'
+            })
+        
+        # Only use mock as absolute fallback
+        return jsonify({
+            'symbol': symbol.upper(),
+            'price': 100.00,
+            'source': 'mock_fallback',
+            'error': 'Unable to fetch real market price - showing placeholder'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Failed to get price for {symbol}: {str(e)}'}), 500
+
+@app.route('/api/trade', methods=['POST'])
+def place_manual_trade():
+    """Place a manual buy/sell order"""
+    try:
+        data = request.get_json() or {}
+        symbol = data.get('symbol', '').upper()
+        side = data.get('side', '').lower()  # 'buy' or 'sell'
+        quantity = int(data.get('quantity', 0))
+        
+        if not symbol or side not in ['buy', 'sell'] or quantity <= 0:
+            return jsonify({'error': 'Invalid trade parameters'}), 400
+        
+        if LIGHTWEIGHT_AVAILABLE and current_strategy and bot_running:
+            # Use professional trading
+            order = current_strategy.place_order(side, quantity)
+            if order:
+                return jsonify({
+                    'message': f'Successfully placed {side} order for {quantity} shares of {symbol}',
+                    'order': order,
+                    'source': 'professional'
+                })
+            else:
+                return jsonify({'error': 'Failed to place order'}), 500
+        else:
+            # Mock trade execution
+            current_price = 100  # Will be updated with real price
+            if LIGHTWEIGHT_AVAILABLE:
+                try:
+                    trader = create_trader(symbol=symbol)
+                    current_price = trader.get_current_price(symbol) or 100
+                except:
+                    pass
+            
+            total_cost = quantity * current_price
+            
+            # Mock order execution
+            mock_order = {
+                'id': f'mock_{datetime.now().strftime("%Y%m%d_%H%M%S")}',
+                'symbol': symbol,
+                'side': side,
+                'quantity': quantity,
+                'price': current_price,
+                'total_cost': total_cost,
+                'status': 'filled',
+                'timestamp': datetime.now().isoformat()
+            }
+            
+            return jsonify({
+                'message': f'Mock {side} order executed: {quantity} shares of {symbol} @ ${current_price:.2f}',
+                'order': mock_order,
+                'source': 'mock'
+            })
+            
+    except Exception as e:
+        return jsonify({'error': f'Failed to place trade: {str(e)}'}), 500
 
 @app.route('/api/options/<symbol>')
 def get_options_chain(symbol):

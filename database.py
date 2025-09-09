@@ -52,38 +52,47 @@ class DatabaseManager:
         if not self.is_connected():
             return False
         
-        portfolio_data = {
-            "user_id": user_id,
-            "cash": cash,
-            "positions": positions,
-            "last_updated": datetime.utcnow()
-        }
-        
-        self.db.portfolios.replace_one(
-            {"user_id": user_id}, 
-            portfolio_data, 
-            upsert=True
-        )
-        return True
+        try:
+            portfolio_data = {
+                "user_id": user_id,
+                "cash": cash,
+                "positions": positions,
+                "last_updated": datetime.utcnow()
+            }
+            
+            # Use insert_one with upsert behavior instead of replace_one
+            result = self.db.portfolios.update_one(
+                {"user_id": user_id}, 
+                {"$set": portfolio_data}, 
+                upsert=True
+            )
+            return True
+        except Exception as e:
+            print(f"Database update_portfolio error: {e}")
+            return False
     
     def save_trade(self, trade_data):
         if not self.is_connected():
             return False
         
-        trade_record = {
-            "user_id": trade_data.get("user_id", "default"),
-            "symbol": trade_data["symbol"],
-            "side": trade_data["side"],  # buy/sell
-            "quantity": trade_data["quantity"],
-            "price": trade_data["price"],
-            "timestamp": datetime.utcnow(),
-            "strategy": trade_data.get("strategy", "ml_trader"),
-            "sentiment": trade_data.get("sentiment"),
-            "total_value": trade_data["quantity"] * trade_data["price"]
-        }
-        
-        self.db.trades.insert_one(trade_record)
-        return True
+        try:
+            trade_record = {
+                "user_id": trade_data.get("user_id", "default"),
+                "symbol": trade_data["symbol"],
+                "side": trade_data["side"],  # buy/sell
+                "quantity": trade_data["quantity"],
+                "price": trade_data["price"],
+                "timestamp": datetime.utcnow(),
+                "strategy": trade_data.get("strategy", "ml_trader"),
+                "sentiment": trade_data.get("sentiment"),
+                "total_value": trade_data["quantity"] * trade_data["price"]
+            }
+            
+            result = self.db.trades.insert_one(trade_record)
+            return True
+        except Exception as e:
+            print(f"Database save_trade error: {e}")
+            return False
     
     def get_trade_history(self, user_id="default", limit=100):
         if not self.is_connected():
