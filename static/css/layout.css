@@ -1,11 +1,24 @@
 /* Layout and container styles */
 .container {
-    max-width: 1200px;
+    max-width: 95vw;
+    width: 100%;
     margin: 0 auto;
     background: white;
     border-radius: var(--border-radius-xl);
     box-shadow: var(--shadow-heavy);
     overflow: hidden;
+}
+
+@media (min-width: 1400px) {
+    .container {
+        max-width: 1400px;
+    }
+}
+
+@media (min-width: 1600px) {
+    .container {
+        max-width: 1500px;
+    }
 }
 
 .header {
@@ -27,16 +40,40 @@
 /* Grid layouts */
 .controls {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: var(--spacing-lg);
     margin-bottom: var(--spacing-xl);
 }
 
+@media (min-width: 1200px) {
+    .controls {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1600px) {
+    .controls {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
 .metrics {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: var(--spacing-lg);
     margin-bottom: var(--spacing-xl);
+}
+
+@media (min-width: 1200px) {
+    .metrics {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+@media (min-width: 1600px) {
+    .metrics {
+        grid-template-columns: repeat(6, 1fr);
+    }
 }
 
 .metrics-comparison {

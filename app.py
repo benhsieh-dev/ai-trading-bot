@@ -452,49 +452,189 @@ def place_manual_trade():
         if not symbol or side not in ['buy', 'sell'] or quantity <= 0:
             return jsonify({'error': 'Invalid trade parameters'}), 400
         
-        if LIGHTWEIGHT_AVAILABLE and current_strategy and bot_running:
-            # Use professional trading
-            order = current_strategy.place_order(side, quantity)
-            if order:
-                return jsonify({
-                    'message': f'Successfully placed {side} order for {quantity} shares of {symbol}',
-                    'order': order,
-                    'source': 'professional'
-                })
-            else:
-                return jsonify({'error': 'Failed to place order'}), 500
-        else:
-            # Mock trade execution
-            current_price = 100  # Will be updated with real price
-            if LIGHTWEIGHT_AVAILABLE:
-                try:
+        # Try to execute real trade (create trader if needed)
+        if LIGHTWEIGHT_AVAILABLE:
+            try:
+                # Use existing strategy or create new one for this trade
+                if current_strategy and bot_running:
+                    # Update existing trader's symbol for this trade
+                    current_strategy.symbol = symbol.upper()
+                    trader = current_strategy
+                else:
+                    # Create new trader with the correct symbol
                     trader = create_trader(symbol=symbol)
-                    current_price = trader.get_current_price(symbol) or 100
-                except:
-                    pass
-            
-            total_cost = quantity * current_price
-            
-            # Mock order execution
-            mock_order = {
-                'id': f'mock_{datetime.now().strftime("%Y%m%d_%H%M%S")}',
-                'symbol': symbol,
-                'side': side,
-                'quantity': quantity,
-                'price': current_price,
-                'total_cost': total_cost,
-                'status': 'filled',
-                'timestamp': datetime.now().isoformat()
-            }
-            
-            return jsonify({
-                'message': f'Mock {side} order executed: {quantity} shares of {symbol} @ ${current_price:.2f}',
-                'order': mock_order,
-                'source': 'mock'
-            })
+                
+                order = trader.place_order(side, quantity)
+                
+                if order:
+                    return jsonify({
+                        'message': f'Successfully placed {side} order for {quantity} shares of {symbol}',
+                        'order': order,
+                        'source': 'professional'
+                    })
+                else:
+                    return jsonify({'error': 'Failed to place order - check account balance and symbol'}), 500
+            except Exception as e:
+                print(f"Real trading failed: {e}")
+                # Fall through to mock trading
+        
+        # Fallback to mock trading
+        # Mock trade execution
+        current_price = 100  # Will be updated with real price
+        if LIGHTWEIGHT_AVAILABLE:
+            try:
+                trader = create_trader(symbol=symbol)
+                current_price = trader.get_current_price(symbol) or 100
+            except:
+                pass
+        
+        total_cost = quantity * current_price
+        
+        # Mock order execution
+        mock_order = {
+            'id': f'mock_{datetime.now().strftime("%Y%m%d_%H%M%S")}',
+            'symbol': symbol,
+            'side': side,
+            'quantity': quantity,
+            'price': current_price,
+            'total_cost': total_cost,
+            'status': 'filled',
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        return jsonify({
+            'message': f'Mock {side} order executed: {quantity} shares of {symbol} @ ${current_price:.2f}',
+            'order': mock_order,
+            'source': 'mock'
+        })
             
     except Exception as e:
         return jsonify({'error': f'Failed to place trade: {str(e)}'}), 500
+
+@app.route('/api/orders')
+def get_orders():
+    """Get all orders (pending and filled)"""
+    try:
+        if LIGHTWEIGHT_AVAILABLE:
+            # Create a trader to access Alpaca API
+            trader = current_strategy if current_strategy else create_trader()
+            
+            try:
+                # Get all orders from Alpaca
+                orders = trader.api.list_orders(status='all', limit=50)
+                
+                formatted_orders = []
+                for order in orders:
+                    formatted_orders.append({
+                        'id': order.id,
+                        'symbol': order.symbol,
+                        'side': order.side,
+                        'quantity': int(order.qty),
+                        'filled_qty': int(order.filled_qty or 0),
+                        'status': order.status,
+                        'order_type': order.type,
+                        'submitted_at': order.submitted_at.strftime('%Y-%m-%d %H:%M:%S') if order.submitted_at else '',
+                        'filled_at': order.filled_at.strftime('%Y-%m-%d %H:%M:%S') if order.filled_at else '',
+                        'asset_class': getattr(order, 'asset_class', 'us_equity')
+                    })
+                
+                # Separate pending and filled orders
+                pending_orders = [o for o in formatted_orders if o['status'] in ['new', 'accepted', 'pending_new', 'held']]
+                filled_orders = [o for o in formatted_orders if o['status'] in ['filled', 'partially_filled']]
+                
+                return jsonify({
+                    'pending_orders': pending_orders,
+                    'filled_orders': filled_orders,
+                    'total_orders': len(formatted_orders),
+                    'source': 'alpaca_live'
+                })
+                
+            except Exception as e:
+                print(f"Failed to get orders from Alpaca: {e}")
+                return jsonify({
+                    'pending_orders': [],
+                    'filled_orders': [],
+                    'total_orders': 0,
+                    'source': 'mock',
+                    'note': 'Unable to fetch real orders - API connection failed'
+                })
+        
+        else:
+            return jsonify({
+                'pending_orders': [],
+                'filled_orders': [],
+                'total_orders': 0,
+                'source': 'mock',
+                'note': 'Professional trading not available - no API configured'
+            })
+            
+    except Exception as e:
+        return jsonify({'error': f'Failed to get orders: {str(e)}'}), 500
+
+@app.route('/api/orders/<order_id>', methods=['DELETE'])
+def cancel_order(order_id):
+    """Cancel a specific order"""
+    try:
+        if LIGHTWEIGHT_AVAILABLE:
+            # Create a trader to access Alpaca API
+            trader = current_strategy if current_strategy else create_trader()
+            
+            try:
+                # Cancel the order via Alpaca API
+                cancelled_order = trader.api.cancel_order(order_id)
+                
+                return jsonify({
+                    'message': f'Order {order_id} cancelled successfully',
+                    'order_id': order_id,
+                    'status': 'cancelled',
+                    'source': 'alpaca_live'
+                })
+                
+            except Exception as e:
+                error_msg = str(e)
+                if 'not found' in error_msg.lower():
+                    return jsonify({'error': f'Order {order_id} not found or already processed'}), 404
+                elif 'cannot be cancelled' in error_msg.lower():
+                    return jsonify({'error': f'Order {order_id} cannot be cancelled (may be filled or already cancelled)'}), 400
+                else:
+                    return jsonify({'error': f'Failed to cancel order: {error_msg}'}), 500
+        
+        else:
+            return jsonify({
+                'error': 'Order cancellation not available - professional trading not configured'
+            }), 400
+            
+    except Exception as e:
+        return jsonify({'error': f'Failed to cancel order: {str(e)}'}), 500
+
+@app.route('/api/orders/cancel-all', methods=['POST'])
+def cancel_all_pending_orders():
+    """Cancel all pending orders"""
+    try:
+        if LIGHTWEIGHT_AVAILABLE:
+            # Create a trader to access Alpaca API
+            trader = current_strategy if current_strategy else create_trader()
+            
+            try:
+                # Get all open orders and cancel them
+                cancelled_orders = trader.api.cancel_all_orders()
+                
+                return jsonify({
+                    'message': f'Successfully cancelled all pending orders',
+                    'cancelled_count': len(cancelled_orders) if cancelled_orders else 0,
+                    'source': 'alpaca_live'
+                })
+                
+            except Exception as e:
+                return jsonify({'error': f'Failed to cancel orders: {str(e)}'}), 500
+        
+        else:
+            return jsonify({
+                'error': 'Order cancellation not available - professional trading not configured'
+            }), 400
+            
+    except Exception as e:
+        return jsonify({'error': f'Failed to cancel orders: {str(e)}'}), 500
 
 @app.route('/api/options/<symbol>')
 def get_options_chain(symbol):

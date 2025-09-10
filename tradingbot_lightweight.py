@@ -86,24 +86,50 @@ class LightweightMLTrader:
             return []
     
     def get_current_price(self, symbol: str = None) -> float:
-        """Get current market price for symbol"""
+        """Get current market price for symbol with cross-validation"""
         symbol = symbol or self.symbol
-        try:
-            # Try Alpaca first for real-time data
-            quote = self.api.get_latest_quote(symbol)
-            price = float(quote.ask_price) if quote.ask_price > 0 else float(quote.bid_price)
-            if price > 0:
-                return price
-        except:
-            pass
         
-        # Fallback to yfinance for market hours data
+        alpaca_price = None
+        yahoo_price = None
+        
+        # Try to get price from both sources
+        try:
+            quote = self.api.get_latest_quote(symbol)
+            alpaca_price = float(quote.ask_price) if quote.ask_price > 0 else float(quote.bid_price)
+            if alpaca_price > 0:
+                print(f"Alpaca price for {symbol}: ${alpaca_price:.2f}")
+        except Exception as e:
+            print(f"Alpaca API failed for {symbol}: {e}")
+        
         try:
             ticker = yf.Ticker(symbol)
             price = ticker.history(period="1d")['Close'].iloc[-1]
-            return float(price)
-        except:
-            return 0.0
+            yahoo_price = float(price)
+            print(f"Yahoo Finance price for {symbol}: ${yahoo_price:.2f}")
+        except Exception as e:
+            print(f"Yahoo Finance failed for {symbol}: {e}")
+        
+        # Cross-validation logic
+        if alpaca_price and yahoo_price:
+            # Calculate percentage difference
+            price_diff = abs(alpaca_price - yahoo_price) / yahoo_price * 100
+            
+            if price_diff < 5:  # If prices are within 5%, use Alpaca (more real-time)
+                print(f"Prices match (diff: {price_diff:.1f}%), using Alpaca: ${alpaca_price:.2f}")
+                return alpaca_price
+            else:
+                print(f"Price discrepancy (diff: {price_diff:.1f}%), using Yahoo Finance: ${yahoo_price:.2f}")
+                return yahoo_price
+        
+        # Fallback to whichever source worked
+        if alpaca_price:
+            print(f"Only Alpaca available: ${alpaca_price:.2f}")
+            return alpaca_price
+        elif yahoo_price:
+            print(f"Only Yahoo Finance available: ${yahoo_price:.2f}")
+            return yahoo_price
+        
+        return 0.0
     
     def get_market_data(self, symbol: str = None, period: str = "5d") -> pd.DataFrame:
         """Get historical market data for analysis"""

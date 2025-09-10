@@ -1,7 +1,6 @@
 # Trading Bot
-**Enterprise-grade trading bot with lightweight architecture and professional-grade APIs**
-
-Financial education platform featuring real-time trading, sentiment analysis, and backtesting capabilities.
+**Trading bot with lightweight architecture and professional-grade APIs**
+- featuring real-time trading, sentiment analysis, and backtesting capabilities.
 
 ## Features
 
@@ -28,7 +27,7 @@ Financial education platform featuring real-time trading, sentiment analysis, an
 
 
 ### **Technologies Used**
-- **Backend**: Python, Flask with professional async handling
+- **Backend**: Python, Flask with async handling
 - **Trading APIs**: 
   - Direct Alpaca REST API (stocks, options, news, portfolio)
   - Yahoo Finance (historical data and backtesting)
@@ -117,17 +116,6 @@ The interface is organized into **two main tabs** for different trading styles:
    - Track **portfolio performance** and cash positions
    - Use **manual controls** to test sentiment and portfolio updates
 
-2. **Historical Backtesting:**
-   - Select **date range** (supports 2020-2024 with realistic market scenarios)
-   - Compare **AI strategy vs Buy-and-Hold** performance
-   - View detailed **performance metrics** (Sharpe ratio, max drawdown, win rate)
-   - **Contextual analysis** based on historical market conditions
-
-3. **Performance Analytics:**
-   - **Visual charts** comparing strategies
-   - **Real-time activity log** with timestamps
-   - **Risk metrics** and trade statistics
-
 ### Options Trading Tab
 
 1. **Paper Portfolio:**
@@ -150,6 +138,18 @@ The interface is organized into **two main tabs** for different trading styles:
    - Real Alpaca stock prices + real options contracts
    - Real Alpaca stock prices + enhanced mock options
    - Realistic mock data for all symbols
+  
+### Sentiment & Backtesting tab
+1. **Historical Backtesting:**
+   - Select **date range** (supports 2020-2024 with realistic market scenarios)
+   - Compare **AI strategy vs Buy-and-Hold** performance
+   - View detailed **performance metrics** (Sharpe ratio, max drawdown, win rate)
+   - **Contextual analysis** based on historical market conditions
+
+2. **Performance Analytics:**
+   - **Visual charts** comparing strategies
+   - **Real-time activity log** with timestamps
+   - **Risk metrics** and trade statistics
 
 ## Quick Start Guide
 
@@ -162,7 +162,7 @@ The interface is organized into **two main tabs** for different trading styles:
 
 2. **Stock Trading:**
    - Go to **📈 Stock Trading** tab
-   - Configure symbol and position size
+   - Look up stock symbol and place trade
    - Click **"Start Trading"** to test the AI strategy
    - Run **backtests** to see historical performance
 
@@ -223,6 +223,13 @@ This platform is designed for **financial education** and includes:
 - `GET /api/sentiment` - Get current market sentiment
 - `GET /api/portfolio` - Get portfolio positions and cash
 - `POST /api/backtest` - Run historical backtesting
+
+### Manual Trading
+- `GET /api/price/<symbol>` - Get real-time stock price with cross-validation
+- `POST /api/trade` - Place manual buy/sell orders (paper trading)
+- `GET /api/orders` - Get all orders (pending and filled)
+- `DELETE /api/orders/<order_id>` - Cancel specific order
+- `POST /api/orders/cancel-all` - Cancel all pending orders
 
 ### Options Trading
 - `GET /api/options/<symbol>` - Get options chain for symbol

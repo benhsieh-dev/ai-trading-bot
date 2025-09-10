@@ -144,10 +144,15 @@
                             <button onclick="startBot()" id="startBtn" style="background: #27ae60;">🚀 Start AI Bot</button>
                             <button onclick="stopBot()" id="stopBtn" class="btn-danger" disabled>⏹️ Stop AI Bot</button>
                         </div>
-                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
                             <button onclick="refreshSentiment()" style="font-size: 12px; padding: 8px;">📊 Sentiment</button>
                             <button onclick="refreshPortfolio()" style="font-size: 12px; padding: 8px;">💰 Portfolio</button>
+                            <button onclick="viewOrders()" style="font-size: 12px; padding: 8px;">📋 Orders</button>
                             <button onclick="refreshStatus()" style="font-size: 12px; padding: 8px;">🔄 Status</button>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
+                            <button onclick="cancelSpecificOrder()" style="font-size: 11px; padding: 6px; background: #f39c12;">❌ Cancel Order</button>
+                            <button onclick="cancelAllOrders()" style="font-size: 11px; padding: 6px; background: #e74c3c;">🛑 Cancel All</button>
                         </div>
                     </div>
                 </div>
@@ -598,6 +603,144 @@
             }
         }
         
+        async function viewOrders() {
+            try {
+                addLog('📋 Fetching orders...');
+                const response = await fetch('/api/orders');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const pendingCount = data.pending_orders.length;
+                    const filledCount = data.filled_orders.length;
+                    
+                    addLog(`📋 Orders: ${pendingCount} pending, ${filledCount} filled`);
+                    
+                    // Show pending orders with cancel options
+                    if (pendingCount > 0) {
+                        addLog('⏳ Pending Orders (click to cancel):');
+                        data.pending_orders.forEach((order, index) => {
+                            addLog(`  ${index + 1}. ${order.side.toUpperCase()} ${order.quantity} ${order.symbol} (${order.status}) - ${order.submitted_at}`);
+                        });
+                        
+                        // Store orders globally for cancellation
+                        window.pendingOrders = data.pending_orders;
+                        
+                        // Show cancel options
+                        if (pendingCount > 1) {
+                            addLog('💡 Commands: Type "cancel all" or "cancel 1" (order number)');
+                        } else {
+                            addLog('💡 Commands: Type "cancel 1" to cancel this order');
+                        }
+                    }
+                    
+                    // Show recent filled orders
+                    if (filledCount > 0) {
+                        addLog('✅ Recent Filled Orders:');
+                        data.filled_orders.slice(0, 5).forEach(order => {
+                            addLog(`  • ${order.side.toUpperCase()} ${order.filled_qty}/${order.quantity} ${order.symbol} - ${order.filled_at || 'Recently'}`);
+                        });
+                    }
+                    
+                    if (pendingCount === 0 && filledCount === 0) {
+                        addLog('📋 No orders found');
+                    }
+                    
+                    showAlert(`Found ${pendingCount} pending and ${filledCount} filled orders`);
+                } else {
+                    addLog(`❌ Failed to get orders: ${data.error}`);
+                    showAlert('Failed to get orders', 'error');
+                }
+            } catch (error) {
+                addLog(`❌ Orders error: ${error.message}`);
+                showAlert('Failed to get orders', 'error');
+            }
+        }
+        
+        async function cancelSpecificOrder() {
+            if (!window.pendingOrders || window.pendingOrders.length === 0) {
+                showAlert('No pending orders found. Click "📋 Orders" first.', 'error');
+                return;
+            }
+            
+            let orderIndex;
+            if (window.pendingOrders.length === 1) {
+                orderIndex = 0;
+            } else {
+                const input = prompt(`Enter order number to cancel (1-${window.pendingOrders.length}):`);
+                if (!input) return;
+                orderIndex = parseInt(input) - 1;
+                
+                if (isNaN(orderIndex) || orderIndex < 0 || orderIndex >= window.pendingOrders.length) {
+                    showAlert('Invalid order number', 'error');
+                    return;
+                }
+            }
+            
+            const order = window.pendingOrders[orderIndex];
+            const confirmed = confirm(`Cancel order: ${order.side.toUpperCase()} ${order.quantity} ${order.symbol}?`);
+            
+            if (!confirmed) return;
+            
+            try {
+                addLog(`❌ Cancelling order ${orderIndex + 1}: ${order.side.toUpperCase()} ${order.quantity} ${order.symbol}...`);
+                
+                const response = await fetch(`/api/orders/${order.id}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addLog(`✅ ${data.message}`);
+                    showAlert('Order cancelled successfully!');
+                    
+                    // Refresh orders list
+                    setTimeout(() => viewOrders(), 1000);
+                } else {
+                    addLog(`❌ Cancel failed: ${data.error}`);
+                    showAlert('Failed to cancel order', 'error');
+                }
+            } catch (error) {
+                addLog(`❌ Cancel error: ${error.message}`);
+                showAlert('Failed to cancel order', 'error');
+            }
+        }
+        
+        async function cancelAllOrders() {
+            if (!window.pendingOrders || window.pendingOrders.length === 0) {
+                showAlert('No pending orders found. Click "📋 Orders" first.', 'error');
+                return;
+            }
+            
+            const confirmed = confirm(`Cancel ALL ${window.pendingOrders.length} pending orders?`);
+            if (!confirmed) return;
+            
+            try {
+                addLog(`🛑 Cancelling all ${window.pendingOrders.length} pending orders...`);
+                
+                const response = await fetch('/api/orders/cancel-all', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addLog(`✅ ${data.message} (${data.cancelled_count} orders)`);
+                    showAlert('All orders cancelled successfully!');
+                    
+                    // Clear stored orders and refresh
+                    window.pendingOrders = [];
+                    setTimeout(() => viewOrders(), 1000);
+                } else {
+                    addLog(`❌ Cancel all failed: ${data.error}`);
+                    showAlert('Failed to cancel orders', 'error');
+                }
+            } catch (error) {
+                addLog(`❌ Cancel all error: ${error.message}`);
+                showAlert('Failed to cancel orders', 'error');
+            }
+        }
+        
         function updateStatus() {
             refreshStatus();
             refreshPortfolio();
@@ -719,7 +862,7 @@
                 if (response.ok && data.price) {
                     // Show price display
                     document.getElementById('priceDisplay').style.display = 'block';
-                    document.getElementById('currentPrice').textContent = `$${data.price}`;
+                    document.getElementById('currentPrice').textContent = `$${data.price.toFixed(2)}`;
                     document.getElementById('priceSource').textContent = data.note || `${data.source} - Last Price`;
                     
                     // Update order preview
