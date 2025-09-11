@@ -991,11 +991,16 @@
             const symbol = document.getElementById('sentimentSymbol').value;
             const daysBack = parseInt(document.getElementById('newsRange').value);
             
+            if (!symbol) {
+                showAlert('Please enter a stock symbol', 'error');
+                return;
+            }
+            
             addLog(`🧠 Analyzing sentiment for ${symbol} (${daysBack} days)...`);
             
             try {
-                // Use the existing sentiment API but with custom parameters
-                const response = await fetch('/api/sentiment');
+                // Use the sentiment API with symbol parameter
+                const response = await fetch(`/api/sentiment/${symbol.toUpperCase()}`);
                 const data = await response.json();
                 
                 if (response.ok) {

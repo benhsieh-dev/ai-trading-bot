@@ -241,12 +241,19 @@ def stop_trading():
         return jsonify({'error': f'Failed to stop bot: {str(e)}'}), 500
 
 @app.route('/api/sentiment')
-def get_sentiment():
-    if current_strategy and bot_running:
-        try:
-            if LIGHTWEIGHT_AVAILABLE and hasattr(current_strategy, 'get_news_sentiment'):
+@app.route('/api/sentiment/<symbol>')
+def get_sentiment(symbol=None):
+    try:
+        # Use provided symbol or default to SPY
+        target_symbol = symbol or request.args.get('symbol', 'SPY')
+        
+        if LIGHTWEIGHT_AVAILABLE:
+            # Create trader for sentiment analysis
+            trader = current_strategy if (current_strategy and bot_running) else create_trader(symbol=target_symbol)
+            
+            try:
                 # Use professional sentiment analysis
-                probability, sentiment = current_strategy.get_news_sentiment()
+                probability, sentiment = trader.get_news_sentiment()
                 
                 # Map sentiment format for frontend compatibility  
                 if sentiment == 'bullish':
@@ -255,24 +262,42 @@ def get_sentiment():
                     sentiment = 'negative'
                 else:
                     sentiment = 'neutral'
+                
+                source = 'professional'
                     
-            else:
-                # Fallback to mock sentiment
-                probability, sentiment = current_strategy.get_sentiment()
-            
-            trading_data['last_sentiment'] = sentiment
-            trading_data['last_probability'] = float(probability)
-            
-            return jsonify({
-                'sentiment': sentiment,
-                'probability': float(probability),
-                'timestamp': datetime.now().isoformat(),
-                'source': 'professional' if LIGHTWEIGHT_AVAILABLE else 'demo'
-            })
-        except Exception as e:
-            return jsonify({'error': f'Failed to get sentiment: {str(e)}'}), 500
-    else:
-        return jsonify({'error': 'Bot not running'}), 400
+            except Exception as e:
+                # Fallback to technical sentiment
+                probability, sentiment = trader.get_technical_sentiment()
+                
+                if sentiment == 'bullish':
+                    sentiment = 'positive'
+                elif sentiment == 'bearish':
+                    sentiment = 'negative'
+                else:
+                    sentiment = 'neutral'
+                
+                source = 'technical_fallback'
+        else:
+            # Mock sentiment for demo
+            import random
+            sentiments = ['positive', 'negative', 'neutral']
+            sentiment = random.choice(sentiments)
+            probability = random.uniform(0.4, 0.9)
+            source = 'demo'
+        
+        trading_data['last_sentiment'] = sentiment
+        trading_data['last_probability'] = float(probability)
+        
+        return jsonify({
+            'sentiment': sentiment,
+            'probability': float(probability),
+            'symbol': target_symbol.upper(),
+            'timestamp': datetime.now().isoformat(),
+            'source': source
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Failed to get sentiment: {str(e)}'}), 500
 
 @app.route('/api/portfolio')
 def get_portfolio():
