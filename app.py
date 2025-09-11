@@ -240,6 +240,62 @@ def stop_trading():
     except Exception as e:
         return jsonify({'error': f'Failed to stop bot: {str(e)}'}), 500
 
+@app.route('/api/news/<symbol>')
+def get_news_headlines(symbol):
+    """Get news headlines with sentiment analysis for a symbol"""
+    try:
+        if LIGHTWEIGHT_AVAILABLE:
+            # Create trader for news analysis
+            trader = create_trader(symbol=symbol)
+            
+            try:
+                # Get news headlines with sentiment
+                news_articles = trader.get_news_with_headlines(days_back=3)
+                
+                return jsonify({
+                    'symbol': symbol.upper(),
+                    'articles': news_articles,
+                    'total_articles': len(news_articles),
+                    'timestamp': datetime.now().isoformat(),
+                    'source': 'alpaca_news'
+                })
+                
+            except Exception as e:
+                return jsonify({
+                    'symbol': symbol.upper(),
+                    'articles': [],
+                    'total_articles': 0,
+                    'error': f'Failed to fetch news: {str(e)}',
+                    'timestamp': datetime.now().isoformat(),
+                    'source': 'error'
+                })
+        else:
+            # Mock news data for demo
+            mock_articles = [
+                {
+                    'headline': f'{symbol.upper()} shows strong quarterly performance',
+                    'url': '#',
+                    'source': 'Demo News',
+                    'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    'sentiment_score': 0.5,
+                    'sentiment_label': 'bullish',
+                    'sentiment_color': '#27ae60',
+                    'age_hours': 2.5,
+                    'summary': 'Demo article summary for testing purposes...'
+                }
+            ]
+            
+            return jsonify({
+                'symbol': symbol.upper(),
+                'articles': mock_articles,
+                'total_articles': len(mock_articles),
+                'timestamp': datetime.now().isoformat(),
+                'source': 'demo'
+            })
+            
+    except Exception as e:
+        return jsonify({'error': f'Failed to get news: {str(e)}'}), 500
+
 @app.route('/api/sentiment')
 @app.route('/api/sentiment/<symbol>')
 def get_sentiment(symbol=None):

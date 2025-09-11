@@ -386,6 +386,14 @@
                             </div>
                             <div id="sentimentBreakdown" style="margin-top: 15px;"></div>
                         </div>
+                        
+                        <!-- News Headlines Section -->
+                        <div id="newsHeadlines" style="margin-top: 20px; padding: 15px; background: white; border-radius: 8px; border: 1px solid #e9ecef; display: none;">
+                            <h5 style="color: #2c3e50; margin-bottom: 15px;">📰 Recent News Headlines</h5>
+                            <div id="newsArticlesList" style="max-height: 400px; overflow-y: auto;">
+                                <p style="color: #7f8c8d; text-align: center; margin: 20px 0;">Click "Analyze Sentiment" to load news headlines</p>
+                            </div>
+                        </div>
                     </div>
                     
                     <div class="control-group">
@@ -1022,7 +1030,9 @@
                     `;
                     
                     addLog(`✅ Sentiment analysis complete: ${data.sentiment} (${(data.probability * 100).toFixed(1)}% confidence)`);
-                    showAlert('Sentiment analysis completed!');
+                    
+                    // Fetch and display news headlines
+                    await fetchNewsHeadlines(symbol);
                 } else {
                     addLog(`❌ Sentiment analysis failed: ${data.error}`);
                     showAlert('Sentiment analysis failed', 'error');
@@ -1031,6 +1041,103 @@
                 addLog(`❌ Sentiment analysis error: ${error.message}`);
                 showAlert('Sentiment analysis failed', 'error');
             }
+        }
+
+        async function fetchNewsHeadlines(symbol) {
+            try {
+                addLog(`📰 Fetching news headlines for ${symbol}...`);
+                
+                const response = await fetch(`/api/news/${symbol.toUpperCase()}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displayNewsHeadlines(data.articles, symbol);
+                    document.getElementById('newsCount').textContent = data.total_articles;
+                    addLog(`✅ Loaded ${data.total_articles} news articles`);
+                    showAlert('Sentiment analysis and news headlines loaded!');
+                } else {
+                    addLog(`❌ Failed to fetch news: ${data.error}`);
+                    // Still show the news section but with error message
+                    document.getElementById('newsHeadlines').style.display = 'block';
+                    document.getElementById('newsArticlesList').innerHTML = `
+                        <p style="color: #e74c3c; text-align: center; margin: 20px 0;">
+                            Failed to load news headlines: ${data.error}
+                        </p>
+                    `;
+                }
+            } catch (error) {
+                addLog(`❌ News fetch error: ${error.message}`);
+                document.getElementById('newsHeadlines').style.display = 'block';
+                document.getElementById('newsArticlesList').innerHTML = `
+                    <p style="color: #e74c3c; text-align: center; margin: 20px 0;">
+                        Network error loading news headlines
+                    </p>
+                `;
+            }
+        }
+
+        function displayNewsHeadlines(articles, symbol) {
+            const newsSection = document.getElementById('newsHeadlines');
+            const articlesList = document.getElementById('newsArticlesList');
+            
+            // Show the news section
+            newsSection.style.display = 'block';
+            
+            if (!articles || articles.length === 0) {
+                articlesList.innerHTML = `
+                    <p style="color: #7f8c8d; text-align: center; margin: 20px 0;">
+                        No recent news articles found for ${symbol}
+                    </p>
+                `;
+                return;
+            }
+            
+            // Generate HTML for each article
+            const articlesHTML = articles.map(article => {
+                const timeAgo = article.age_hours < 1 ? 
+                    `${Math.round(article.age_hours * 60)} minutes ago` : 
+                    `${Math.round(article.age_hours)} hours ago`;
+                
+                return `
+                    <div style="border-bottom: 1px solid #e9ecef; padding: 15px 0;">
+                        <div style="display: flex; justify-content: between; align-items: start; gap: 15px;">
+                            <div style="flex: 1;">
+                                <h6 style="margin: 0 0 8px 0; color: #2c3e50; font-size: 14px; line-height: 1.4;">
+                                    <a href="${article.url}" target="_blank" style="color: #2c3e50; text-decoration: none;">
+                                        ${article.headline}
+                                    </a>
+                                </h6>
+                                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 8px;">
+                                    <span style="font-size: 12px; color: #7f8c8d;">
+                                        📅 ${timeAgo}
+                                    </span>
+                                    <span style="font-size: 12px; color: #7f8c8d;">
+                                        📰 ${article.source}
+                                    </span>
+                                    <span style="font-size: 12px; padding: 2px 6px; border-radius: 3px; color: white; background: ${article.sentiment_color};">
+                                        ${article.sentiment_label.toUpperCase()}
+                                    </span>
+                                    <span style="font-size: 12px; color: #7f8c8d;">
+                                        Score: ${article.sentiment_score}
+                                    </span>
+                                </div>
+                                ${article.summary ? `
+                                    <p style="margin: 0; font-size: 12px; color: #666; line-height: 1.3;">
+                                        ${article.summary}
+                                    </p>
+                                ` : ''}
+                            </div>
+                            <div style="flex-shrink: 0;">
+                                <a href="${article.url}" target="_blank" style="display: inline-block; padding: 6px 12px; background: #3498db; color: white; text-decoration: none; border-radius: 4px; font-size: 11px;">
+                                    Read More
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            articlesList.innerHTML = articlesHTML;
         }
 
         async function runBacktestWithConfig(config) {

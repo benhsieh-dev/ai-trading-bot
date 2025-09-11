@@ -151,6 +151,109 @@ class LightweightMLTrader:
             print(f"Error getting market data: {e}")
             return pd.DataFrame()
     
+    def get_news_with_headlines(self, days_back: int = 3) -> List[Dict]:
+        """Get news headlines with sentiment scores and links"""
+        try:
+            # Get news from Alpaca - try different approaches
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=days_back)
+            
+            print(f"Fetching news for {self.symbol} from {start_date.date()} to {end_date.date()}")
+            
+            try:
+                # Format dates properly for Alpaca API (RFC3339 format)
+                start_str = start_date.strftime('%Y-%m-%d')
+                end_str = end_date.strftime('%Y-%m-%d')
+                
+                # Try symbol-specific news first
+                news = self.api.get_news(
+                    symbol=self.symbol,
+                    start=start_str,
+                    end=end_str,
+                    limit=20
+                )
+                print(f"Symbol-specific news: Got {len(news) if news else 0} articles for {self.symbol}")
+                
+                # Filter out articles that don't mention our symbol if we got general news
+                if news:
+                    filtered_news = []
+                    symbol_lower = self.symbol.lower()
+                    for article in news:
+                        headline = article.headline.lower()
+                        if symbol_lower in headline or self.symbol in article.headline:
+                            filtered_news.append(article)
+                    
+                    if filtered_news:
+                        news = filtered_news
+                        print(f"Filtered to {len(news)} articles mentioning {self.symbol}")
+                
+            except Exception as e:
+                print(f"Symbol-specific news failed: {e}")
+                # Fallback to general news and filter
+                try:
+                    news = self.api.get_news(limit=50)  # Get more to filter from
+                    print(f"General news: Got {len(news) if news else 0} articles")
+                    
+                    # Filter for our symbol
+                    if news:
+                        filtered_news = []
+                        symbol_lower = self.symbol.lower()
+                        for article in news:
+                            headline = article.headline.lower()
+                            if symbol_lower in headline or self.symbol in article.headline:
+                                filtered_news.append(article)
+                        
+                        news = filtered_news[:20]  # Limit to 20 relevant articles
+                        print(f"Filtered to {len(news)} articles mentioning {self.symbol}")
+                        
+                except Exception as e2:
+                    print(f"General news also failed: {e2}")
+                    news = None
+            
+            if not news:
+                print("No news available from Alpaca API")
+                return []
+            
+            # Process each news article
+            news_articles = []
+            for article in news:
+                # Analyze sentiment using TextBlob
+                headline_sentiment = TextBlob(article.headline).sentiment.polarity
+                
+                # Convert to readable sentiment
+                if headline_sentiment > 0.1:
+                    sentiment_label = "bullish"
+                    sentiment_color = "#27ae60"
+                elif headline_sentiment < -0.1:
+                    sentiment_label = "bearish" 
+                    sentiment_color = "#e74c3c"
+                else:
+                    sentiment_label = "neutral"
+                    sentiment_color = "#7f8c8d"
+                
+                # Calculate age of article
+                age_hours = (datetime.now() - article.created_at.replace(tzinfo=None)).total_seconds() / 3600
+                
+                news_articles.append({
+                    'headline': article.headline,
+                    'url': article.url,
+                    'source': getattr(article, 'source', 'Unknown'),
+                    'created_at': article.created_at.strftime('%Y-%m-%d %H:%M:%S') if article.created_at else '',
+                    'sentiment_score': round(headline_sentiment, 3),
+                    'sentiment_label': sentiment_label,
+                    'sentiment_color': sentiment_color,
+                    'age_hours': round(age_hours, 1),
+                    'summary': getattr(article, 'summary', '')[:200] + '...' if hasattr(article, 'summary') and article.summary else ''
+                })
+            
+            # Sort by most recent first
+            news_articles.sort(key=lambda x: x['created_at'], reverse=True)
+            return news_articles
+            
+        except Exception as e:
+            print(f"Error getting news headlines: {e}")
+            return []
+
     def get_news_sentiment(self, days_back: int = 3) -> Tuple[float, str]:
         """Get sentiment analysis from recent news"""
         try:
@@ -159,7 +262,7 @@ class LightweightMLTrader:
             start_date = end_date - timedelta(days=days_back)
             
             news = self.api.get_news(
-                symbols=self.symbol,
+                symbol=self.symbol,
                 start=start_date.isoformat(),
                 end=end_date.isoformat(),
                 limit=50
