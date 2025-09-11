@@ -221,6 +221,8 @@ This platform is designed for **financial education** and includes:
 - `POST /api/start` - Initialize trading strategy
 - `POST /api/stop` - Stop trading bot
 - `GET /api/sentiment` - Get current market sentiment
+- `GET /api/sentiment/<symbol>` - Get sentiment analysis for specific symbol
+- `GET /api/news/<symbol>` - Get news headlines with sentiment analysis
 - `GET /api/portfolio` - Get portfolio positions and cash
 - `POST /api/backtest` - Run historical backtesting
 
@@ -234,6 +236,12 @@ This platform is designed for **financial education** and includes:
 ### Options Trading
 - `GET /api/options/<symbol>` - Get options chain for symbol
 - Returns real Alpaca data or enhanced mock data with transparent fallback
+
+## Web Routes
+
+### Pages
+- `GET /` - Main dashboard with trading controls and analytics
+- `GET /portfolio` - Comprehensive portfolio management page with detailed positions
 
 ## Configuration
 
