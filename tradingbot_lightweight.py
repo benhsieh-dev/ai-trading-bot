@@ -72,17 +72,26 @@ class LightweightMLTrader:
         """Get current positions"""
         try:
             positions = self.api.list_positions()
-            return [{
-                'symbol': pos.symbol,
-                'quantity': int(pos.qty),
-                'side': 'long' if int(pos.qty) > 0 else 'short',
-                'market_value': float(pos.market_value),
-                'unrealized_pl': float(pos.unrealized_pl),
-                'unrealized_plpc': float(pos.unrealized_plpc) * 100,
-                'avg_entry_price': float(pos.avg_entry_price)
-            } for pos in positions]
+            print(f"Raw positions from Alpaca: {len(positions)} positions found")
+            
+            formatted_positions = []
+            for pos in positions:
+                print(f"Position: {pos.symbol} - {pos.qty} shares @ ${pos.avg_entry_price}")
+                formatted_positions.append({
+                    'symbol': pos.symbol,
+                    'quantity': int(pos.qty),
+                    'side': 'long' if int(pos.qty) > 0 else 'short',
+                    'market_value': float(pos.market_value),
+                    'unrealized_pl': float(pos.unrealized_pl),
+                    'unrealized_plpc': float(pos.unrealized_plpc) * 100,
+                    'avg_entry_price': float(pos.avg_entry_price)
+                })
+            
+            return formatted_positions
         except Exception as e:
             print(f"Error getting positions: {e}")
+            import traceback
+            traceback.print_exc()
             return []
     
     def get_current_price(self, symbol: str = None) -> float:

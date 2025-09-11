@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio - AI Trading Bot</title>
+    
+    <!-- External CSS Files -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+    
+    <style>
+        .portfolio-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .portfolio-table th,
+        .portfolio-table td {
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .portfolio-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        
+        .portfolio-table td {
+            font-size: 14px;
+        }
+        
+        .symbol-cell {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .positive {
+            color: #27ae60;
+            font-weight: 600;
+        }
+        
+        .negative {
+            color: #e74c3c;
+            font-weight: 600;
+        }
+        
+        .trade-controls {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+        
+        .trade-input {
+            width: 50px;
+            padding: 4px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        
+        .trade-btn {
+            padding: 4px 8px;
+            font-size: 11px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .btn-buy {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .btn-sell {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .portfolio-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .summary-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .summary-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .summary-label {
+            font-size: 12px;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            margin-top: 5px;
+        }
+        
+        .back-nav {
+            margin-bottom: 20px;
+        }
+        
+        .back-nav a {
+            color: #3498db;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .back-nav a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💰 Portfolio Management</h1>
+            <p class="header-subtitle">Real-time position tracking and quick trading</p>
+        </div>
+        
+        <div class="dashboard">
+            <div class="back-nav">
+                <a href="/">← Back to Dashboard</a>
+            </div>
+            
+            <!-- Portfolio Summary Cards -->
+            <div class="portfolio-summary">
+                <div class="summary-card">
+                    <div class="summary-value" id="totalValue">$0.00</div>
+                    <div class="summary-label">Portfolio Value</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value" id="cashValue">$0.00</div>
+                    <div class="summary-label">Available Cash</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value" id="totalGain">$0.00</div>
+                    <div class="summary-label">Total Gain/Loss</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value" id="dayGain">$0.00</div>
+                    <div class="summary-label">Today's Gain/Loss</div>
+                </div>
+            </div>
+            
+            <!-- Positions Table -->
+            <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <h3 style="margin-bottom: 20px; color: #2c3e50;">Stock Positions</h3>
+                
+                <table class="portfolio-table">
+                    <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Trade</th>
+                            <th>Last Price</th>
+                            <th>Change $</th>
+                            <th>Change %</th>
+                            <th>Qty</th>
+                            <th>Price Paid</th>
+                            <th>Day's Gain</th>
+                            <th>Total Gain</th>
+                            <th>Total Gain %</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody id="positionsTableBody">
+                        <tr>
+                            <td colspan="11" style="text-align: center; color: #7f8c8d; padding: 40px;">
+                                Loading positions...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Refresh Controls -->
+            <div style="margin-top: 20px; text-align: center;">
+                <button onclick="refreshPortfolio()" style="background: #3498db; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">
+                    🔄 Refresh Portfolio
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let portfolioData = {};
+        
+        async function refreshPortfolio() {
+            try {
+                const response = await fetch('/api/portfolio');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    portfolioData = data;
+                    updatePortfolioDisplay(data);
+                } else {
+                    console.error('Failed to get portfolio:', data.error);
+                    alert('Failed to load portfolio data');
+                }
+            } catch (error) {
+                console.error('Network error:', error);
+                alert('Failed to connect to server');
+            }
+        }
+        
+        function updatePortfolioDisplay(data) {
+            // Update summary cards
+            const cash = data.cash || 0;
+            const positions = data.positions || [];
+            
+            let totalValue = cash;
+            let totalGain = 0;
+            let dayGain = 0;
+            
+            positions.forEach(pos => {
+                totalValue += pos.market_value || 0;
+                totalGain += pos.unrealized_pnl || 0;
+                dayGain += pos.days_gain || 0;
+            });
+            
+            document.getElementById('cashValue').textContent = `$${cash.toLocaleString()}`;
+            document.getElementById('totalValue').textContent = `$${totalValue.toLocaleString()}`;
+            document.getElementById('totalGain').textContent = `$${totalGain.toFixed(2)}`;
+            document.getElementById('totalGain').className = totalGain >= 0 ? 'summary-value positive' : 'summary-value negative';
+            document.getElementById('dayGain').textContent = `$${dayGain.toFixed(2)}`;
+            document.getElementById('dayGain').className = dayGain >= 0 ? 'summary-value positive' : 'summary-value negative';
+            
+            // Update positions table
+            const tbody = document.getElementById('positionsTableBody');
+            
+            if (positions.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="11" style="text-align: center; color: #7f8c8d; padding: 40px;">
+                            No positions found. Start trading to see your portfolio here!
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = positions.map(pos => {
+                const changeClass = (pos.daily_change_dollar >= 0) ? 'positive' : 'negative';
+                const gainClass = (pos.unrealized_pnl >= 0) ? 'positive' : 'negative';
+                const dayGainClass = (pos.days_gain >= 0) ? 'positive' : 'negative';
+                
+                return `
+                    <tr>
+                        <td class="symbol-cell">${pos.symbol}</td>
+                        <td>
+                            <div class="trade-controls">
+                                <input type="number" class="trade-input" id="qty-${pos.symbol}" value="10" min="1" max="1000">
+                                <button class="trade-btn btn-buy" onclick="quickTrade('${pos.symbol}', 'buy')">BUY</button>
+                                <button class="trade-btn btn-sell" onclick="quickTrade('${pos.symbol}', 'sell')">SELL</button>
+                            </div>
+                        </td>
+                        <td>$${pos.current_price.toFixed(2)}</td>
+                        <td class="${changeClass}">$${pos.daily_change_dollar.toFixed(2)}</td>
+                        <td class="${changeClass}">${pos.daily_change_percent.toFixed(2)}%</td>
+                        <td>${pos.quantity}</td>
+                        <td>$${pos.entry_price.toFixed(2)}</td>
+                        <td class="${dayGainClass}">$${pos.days_gain.toFixed(2)}</td>
+                        <td class="${gainClass}">$${pos.unrealized_pnl.toFixed(2)}</td>
+                        <td class="${gainClass}">${pos.unrealized_pnl_percent.toFixed(2)}%</td>
+                        <td>$${pos.market_value.toFixed(2)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        async function quickTrade(symbol, side) {
+            const qtyInput = document.getElementById(`qty-${symbol}`);
+            const quantity = parseInt(qtyInput.value);
+            
+            if (!quantity || quantity <= 0) {
+                alert('Please enter a valid quantity');
+                return;
+            }
+            
+            const confirmed = confirm(`${side.toUpperCase()} ${quantity} shares of ${symbol}?`);
+            if (!confirmed) return;
+            
+            try {
+                const response = await fetch('/api/trade', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        symbol: symbol,
+                        side: side,
+                        quantity: quantity
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert(`${side.toUpperCase()} order executed successfully!`);
+                    // Refresh portfolio after successful trade
+                    setTimeout(() => refreshPortfolio(), 1000);
+                } else {
+                    alert(`Trade failed: ${data.error}`);
+                }
+            } catch (error) {
+                alert('Failed to execute trade');
+                console.error('Trade error:', error);
+            }
+        }
+        
+        // Auto-refresh portfolio every 30 seconds
+        setInterval(refreshPortfolio, 30000);
+        
+        // Initial load
+        refreshPortfolio();
+    </script>
+</body>
+</html>
