@@ -588,7 +588,10 @@
                 const data = await response.json();
                 
                 if (response.ok) {
-                    document.getElementById('cashValue').textContent = `$${data.cash.toFixed(2)}`;
+                    document.getElementById('cashValue').textContent = `$${Number(data.cash).toLocaleString('en-US', { 
+                        minimumFractionDigits: 2, 
+                        maximumFractionDigits: 2
+                    })}`;
                     document.getElementById('positionsValue').textContent = data.positions.length;
                     addLog(`Portfolio updated: $${data.cash.toFixed(2)} cash, ${data.positions.length} positions`);
                 } else {
