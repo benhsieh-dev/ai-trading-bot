@@ -736,123 +736,163 @@ def cancel_all_pending_orders():
 
 @app.route('/api/options/<symbol>')
 def get_options_chain(symbol):
-    """Fetch real options chain data from Alpaca"""
+    """Fetch real options chain data from free APIs"""
     try:
-        from alpaca_trade_api import REST
+        # Try free options data sources first
         
-        # Initialize Alpaca API client
-        api = REST(
-            key_id=API_KEY, 
-            secret_key=API_SECRET, 
-            base_url=BASE_URL
-        )
+        # Option 1: Try Alpha Vantage (free tier available)
+        alpha_vantage_key = os.environ.get('ALPHA_VANTAGE_API_KEY')
+        if alpha_vantage_key:
+            try:
+                options_data = get_alphavantage_options(symbol, alpha_vantage_key)
+                if options_data:
+                    return jsonify(options_data)
+            except Exception as e:
+                print(f"Alpha Vantage failed: {e}")
         
-        # Get real stock quote first for current price
+        # Option 2: Try Yahoo Finance (free but unofficial)
         try:
-            # Try to get real stock price from Alpaca
-            quote = api.get_latest_quote(symbol)
-            current_price = float(quote.ask_price if quote.ask_price > 0 else quote.bid_price)
-            price_source = 'alpaca_live'
-        except Exception as quote_error:
-            # Fallback to realistic mock prices if quote fails
-            symbol_prices = {
-                'SPY': 430, 'NVDA': 120, 'AAPL': 185, 'MSFT': 340,
-                'GOOGL': 140, 'TSLA': 250, 'META': 320, 'AMZN': 150,
-                'AMD': 140, 'QQQ': 360, 'IWM': 200, 'GLD': 180
-            }
-            current_price = symbol_prices.get(symbol.upper(), 100)
-            price_source = 'mock_price'
+            # Get the days parameter from request (for expiration selection)
+            days_ahead = int(request.args.get('days', 7))  # Default to 7 days
+            options_data = get_yahoo_options(symbol, days_ahead)
+            if options_data:
+                return jsonify(options_data)
+        except Exception as e:
+            print(f"Yahoo Finance options failed: {e}")
         
-        # Fetch options contracts (Alpaca API v2 format)
-        try:
-            # Get options contracts for the symbol
-            import requests
-            headers = {
-                'APCA-API-KEY-ID': API_KEY,
-                'APCA-API-SECRET-KEY': API_SECRET
-            }
-            
-            # Alpaca options endpoint
-            options_url = f"https://paper-api.alpaca.markets/v1beta1/options/contracts"
-            params = {
-                'underlying_symbols': symbol,
-                'status': 'active',
-                'expiration_date_gte': '2024-01-01',
-                'page_size': 50
-            }
-            
-            response = requests.get(options_url, headers=headers, params=params)
-            
-            if response.status_code == 200:
-                options_data = response.json()
-                
-                # Process options data into our format
-                strikes = []
-                processed_strikes = set()
-                
-                for contract in options_data.get('option_contracts', []):
-                    strike_price = float(contract.get('strike_price', 0))
-                    option_type = contract.get('type', '').lower()
-                    
-                    # Skip if we already have this strike price
-                    if strike_price in processed_strikes:
-                        continue
-                    processed_strikes.add(strike_price)
-                    
-                    # Only include strikes within reasonable range of current price
-                    if abs(strike_price - current_price) <= 50:
-                        # Mock prices for now since real-time pricing requires market data subscription
-                        if option_type == 'call':
-                            call_price = max(0.01, max(0, current_price - strike_price) + (5 * 0.5))
-                        else:
-                            call_price = max(0.01, max(0, current_price - strike_price) + (5 * 0.5))
-                        
-                        put_price = max(0.01, max(0, strike_price - current_price) + (5 * 0.5))
-                        
-                        strikes.append({
-                            'strike': strike_price,
-                            'call': {'bid': call_price * 0.95, 'ask': call_price * 1.05, 'last': call_price},
-                            'put': {'bid': put_price * 0.95, 'ask': put_price * 1.05, 'last': put_price}
-                        })
-                
-                # Sort by strike price
-                strikes.sort(key=lambda x: x['strike'])
-                
-                # Limit to reasonable number of strikes
-                strikes = strikes[:21]  # Show 21 strikes max
-                
-                return jsonify({
-                    'symbol': symbol.upper(),
-                    'current_price': current_price,
-                    'strikes': strikes,
-                    'data_source': 'alpaca_contracts',
-                    'price_source': price_source
-                })
-            
-            else:
-                # Fallback to enhanced mock data if API fails
-                return jsonify({
-                    'symbol': symbol.upper(),
-                    'current_price': current_price,
-                    'strikes': generate_mock_options(symbol, current_price),
-                    'data_source': 'mock_enhanced',
-                    'price_source': price_source,
-                    'note': f'Options contracts unavailable (HTTP {response.status_code}), using realistic mock data with real stock price'
-                })
-                
-        except Exception as api_error:
-            # Fallback to enhanced mock data
-            return jsonify({
-                'symbol': symbol.upper(),
-                'current_price': current_price,
-                'strikes': generate_mock_options(symbol, current_price),
-                'data_source': 'mock_enhanced',
-                'price_source': price_source,
-                'note': f'Options API error: {str(api_error)}, using realistic mock data'
-            })
+        # Fallback: Inform user that real options data isn't available
+        return jsonify({
+            'error': f'No real options data available for {symbol.upper()}. Yahoo Finance may not have options data for this symbol. Try major symbols like ORCL, AAPL, SPY, QQQ, or NVDA.',
+            'symbol': symbol.upper(),
+            'strikes': [],
+            'current_price': 0,
+            'data_source': 'unavailable',
+            'note': 'Trading is disabled when real options data is not available'
+        })
         
     except Exception as e:
         return jsonify({'error': f'Failed to fetch options data: {str(e)}'}), 500
+
+def get_yahoo_options(symbol, days_ahead=7):
+    """Get real options data from Yahoo Finance (free but unofficial)"""
+    try:
+        import yfinance as yf
+        import pandas as pd
+        from datetime import datetime, timedelta
+        
+        ticker = yf.Ticker(symbol)
+        
+        # Get current stock price
+        info = ticker.info
+        current_price = info.get('currentPrice') or info.get('previousClose', 0)
+        
+        if current_price <= 0:
+            return None
+        
+        # Get options expiration dates
+        exp_dates = ticker.options
+        if not exp_dates:
+            return None
+        
+        # Find the best expiration date based on requested days
+        target_date = datetime.now() + timedelta(days=days_ahead)
+        best_exp_date = exp_dates[0]  # Default to first available
+        min_diff = float('inf')
+        
+        for exp_str in exp_dates:
+            exp_date = datetime.strptime(exp_str, '%Y-%m-%d')
+            diff = abs((exp_date - target_date).days)
+            if diff < min_diff:
+                min_diff = diff
+                best_exp_date = exp_str
+        
+        exp_date = best_exp_date
+        print(f"Selected expiration {exp_date} for {days_ahead} days ahead (target: {target_date.strftime('%Y-%m-%d')})")
+        
+        # Get options chain for that date
+        options_chain = ticker.option_chain(exp_date)
+        calls = options_chain.calls
+        puts = options_chain.puts
+        
+        # Format the data
+        strikes = []
+        processed_strikes = set()
+        
+        # Use ALL available strikes (no range filtering)
+        relevant_calls = calls
+        relevant_puts = puts
+        
+        print(f"Processing ALL available strikes for ${current_price:.0f} stock price")
+        print(f"Found {len(relevant_calls)} calls and {len(relevant_puts)} puts total")
+        
+        # Process all calls
+        for _, call in relevant_calls.iterrows():
+            strike = float(call['strike'])
+            if strike in processed_strikes:
+                continue
+            processed_strikes.add(strike)
+            
+            # Find corresponding put
+            put_data = relevant_puts[relevant_puts['strike'] == strike]
+            put_price = float(put_data['lastPrice'].iloc[0]) if len(put_data) > 0 and not put_data['lastPrice'].isna().iloc[0] else 0.01
+            
+            call_price = float(call['lastPrice']) if not pd.isna(call['lastPrice']) else 0.01
+            
+            strikes.append({
+                'strike': strike,
+                'call': {
+                    'bid': float(call.get('bid', call_price * 0.95)) if not pd.isna(call.get('bid', 0)) else call_price * 0.95,
+                    'ask': float(call.get('ask', call_price * 1.05)) if not pd.isna(call.get('ask', 0)) else call_price * 1.05,
+                    'last': call_price
+                },
+                'put': {
+                    'bid': put_price * 0.95,
+                    'ask': put_price * 1.05,
+                    'last': put_price
+                }
+            })
+        
+        # Sort by strike - NO CAP, show ALL strikes
+        strikes.sort(key=lambda x: x['strike'])
+        print(f"Returning {len(strikes)} total strikes (no cap applied)")
+        
+        return {
+            'symbol': symbol.upper(),
+            'current_price': current_price,
+            'strikes': strikes,
+            'data_source': 'yahoo_finance',
+            'expiration_date': exp_date,
+            'note': f'Real options data from Yahoo Finance for {exp_date} expiration'
+        }
+        
+    except Exception as e:
+        print(f"Yahoo Finance options error: {e}")
+        return None
+
+def get_alphavantage_options(symbol, api_key):
+    """Get options data from Alpha Vantage (requires API key)"""
+    try:
+        # Alpha Vantage options endpoint (premium feature)
+        url = f'https://www.alphavantage.co/query'
+        params = {
+            'function': 'OPTION_CHAIN',
+            'symbol': symbol,
+            'apikey': api_key
+        }
+        
+        response = requests.get(url, params=params)
+        data = response.json()
+        
+        if 'Error Message' in data or 'Note' in data:
+            return None
+        
+        # Process Alpha Vantage response (implementation would depend on their API structure)
+        # This is a placeholder - would need actual Alpha Vantage options API documentation
+        return None
+        
+    except Exception as e:
+        print(f"Alpha Vantage options error: {e}")
+        return None
 
 def generate_mock_options(symbol, current_price):
     """Generate realistic mock options data as fallback"""

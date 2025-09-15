@@ -303,6 +303,17 @@
                     </div>
                 </div>
                 
+                <!-- Options Trading Log Console -->
+                <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e9ecef; margin-bottom: 20px;">
+                    <h5 style="color: #2c3e50; margin-bottom: 15px;">📋 Options Trading Log</h5>
+                    <textarea 
+                        id="optionsLogOutput" 
+                        readonly 
+                        placeholder="Options trading activity will appear here...&#10;&#10;Load options chain and place orders to see live updates!"
+                        style="width: 100%; height: 150px; padding: 10px; border: 1px solid #e9ecef; border-radius: 5px; background: #f8f9fa; font-family: monospace; font-size: 12px; resize: vertical; color: #2c3e50;">
+                    </textarea>
+                </div>
+                
                 <!-- Current Positions -->
                 <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e9ecef; margin-bottom: 20px;">
                     <h5 style="color: #2c3e50; margin-bottom: 15px;">📊 Current Positions</h5>
@@ -502,6 +513,28 @@
             }
             document.getElementById('logOutput').value = logMessages.join('\n');
             document.getElementById('logOutput').scrollTop = document.getElementById('logOutput').scrollHeight;
+        }
+
+        // Dedicated options trading log
+        let optionsLogMessages = [];
+        
+        function addOptionsLog(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            optionsLogMessages.push(`[${timestamp}] ${message}`);
+            
+            // Keep only last 50 messages for options log
+            if (optionsLogMessages.length > 50) {
+                optionsLogMessages.shift();
+            }
+            
+            const optionsLogOutput = document.getElementById('optionsLogOutput');
+            if (optionsLogOutput) {
+                optionsLogOutput.value = optionsLogMessages.join('\n');
+                optionsLogOutput.scrollTop = optionsLogOutput.scrollHeight;
+            }
+            
+            // Also add to main log for consistency
+            addLog(message);
         }
         
         function showAlert(message, type = 'success') {
@@ -1330,6 +1363,9 @@
         // Options Trading Variables
         let selectedOptionType = 'call';
         let selectedAction = 'buy';
+        let currentOptionsExpiration = null; // Store current expiration date
+        let currentDataSource = null; // Track if we're using real or mock data
+        let selectedOptionPrices = null; // Store bid/ask/last prices for accurate trading
         let optionsPortfolio = {
             cash: 100000,
             positions: [],
@@ -1347,6 +1383,27 @@
             selectedAction = action;
             document.getElementById('buyBtn').style.opacity = action === 'buy' ? '1' : '0.6';
             document.getElementById('sellBtn').style.opacity = action === 'sell' ? '1' : '0.6';
+        }
+
+        function updatePlaceOrderButton(dataSource) {
+            const placeOrderBtn = document.querySelector('button[onclick="placeOptionsOrder()"]');
+            if (placeOrderBtn) {
+                if (dataSource === 'yahoo_finance' || dataSource === 'alpaca_contracts') {
+                    // Enable trading for real data
+                    placeOrderBtn.disabled = false;
+                    placeOrderBtn.style.background = '#9b59b6';
+                    placeOrderBtn.style.cursor = 'pointer';
+                    placeOrderBtn.style.opacity = '1';
+                    placeOrderBtn.innerHTML = '🎯 Place Order';
+                } else {
+                    // Disable trading for mock data
+                    placeOrderBtn.disabled = true;
+                    placeOrderBtn.style.background = '#95a5a6';
+                    placeOrderBtn.style.cursor = 'not-allowed';
+                    placeOrderBtn.style.opacity = '0.6';
+                    placeOrderBtn.innerHTML = '🚫 Trading Disabled (Mock Data)';
+                }
+            }
         }
         
         function getSymbolPrice(symbol) {
@@ -1379,15 +1436,15 @@
             const symbol = document.getElementById('optionsSymbol').value;
             const expiry = document.getElementById('optionsExpiry').value;
             
-            addLog(`🔍 Loading real options chain for ${symbol} (${expiry} days)...`);
+            addOptionsLog(`🔍 Loading options chain for ${symbol} (${expiry} days)...`);
             
             try {
-                // Fetch real options data from Alpaca API
-                const response = await fetch(`/api/options/${symbol}`);
+                // Fetch real options data with expiry parameter
+                const response = await fetch(`/api/options/${symbol}?days=${expiry}`);
                 const data = await response.json();
                 
                 if (data.error) {
-                    addLog(`⚠️ API Error: ${data.error} - Using fallback data`);
+                    addOptionsLog(`⚠️ API Error: ${data.error} - Using fallback data`);
                 }
                 
                 // Log data source for transparency
@@ -1401,19 +1458,37 @@
                 }
                 
                 if (data.note) {
-                    addLog(`📋 ${data.note}`);
+                    addOptionsLog(`📋 ${data.note}`);
                 }
-                addLog(sourceMsg);
+                addOptionsLog(sourceMsg);
                 
-                displayOptionsChain(data.strikes, data.current_price, data.symbol, data.data_source);
+                // Store expiration date and data source for use in order placement
+                currentOptionsExpiration = data.expiration_date || null;
+                currentDataSource = data.data_source;
+                
+                // Enable/disable place order button based on data source
+                updatePlaceOrderButton(data.data_source);
+                
+                displayOptionsChain(data.strikes, data.current_price, data.symbol, data.data_source, data.expiration_date);
                 
             } catch (error) {
-                addLog(`❌ Failed to load options data: ${error.message}`);
+                addOptionsLog(`❌ Failed to load options data: ${error.message}`);
                 
                 // Fallback to mock data
                 const currentPrice = getSymbolPrice(symbol);
                 const strikes = generateMockStrikes(symbol, currentPrice);
-                displayOptionsChain(strikes, currentPrice, symbol, 'mock_fallback');
+                
+                // Set a mock expiration date (next Friday)
+                const nextFriday = new Date();
+                nextFriday.setDate(nextFriday.getDate() + (5 - nextFriday.getDay() + 7) % 7);
+                if (nextFriday <= new Date()) nextFriday.setDate(nextFriday.getDate() + 7);
+                currentOptionsExpiration = nextFriday.toISOString().split('T')[0];
+                currentDataSource = 'mock_fallback';
+                
+                // Disable place order button for mock data
+                updatePlaceOrderButton('mock_fallback');
+                
+                displayOptionsChain(strikes, currentPrice, symbol, 'mock_fallback', currentOptionsExpiration);
             }
         }
         
@@ -1448,23 +1523,47 @@
             return strikes;
         }
         
-        function displayOptionsChain(strikes, currentPrice, symbol = '', dataSource = '') {
+        function displayOptionsChain(strikes, currentPrice, symbol = '', dataSource = '', expirationDate = null) {
             const display = document.getElementById('optionsChainDisplay');
             
-            // Data source indicator
+            // Data source indicator with trading status
             let sourceIndicator = '';
+            let tradingStatus = '';
             if (dataSource === 'alpaca_contracts') {
                 sourceIndicator = '<span style="color: #27ae60; font-size: 12px;">📡 Live Alpaca Options</span>';
+                tradingStatus = '<div style="color: #27ae60; font-size: 11px; margin-top: 3px;">🟢 Trading Enabled</div>';
+            } else if (dataSource === 'yahoo_finance') {
+                sourceIndicator = '<span style="color: #3498db; font-size: 12px;">✅ Real Yahoo Finance Data</span>';
+                tradingStatus = '<div style="color: #27ae60; font-size: 11px; margin-top: 3px;">🟢 Trading Enabled</div>';
             } else if (dataSource === 'mock_enhanced') {
-                sourceIndicator = '<span style="color: #3498db; font-size: 12px;">🔄 Enhanced Mock Data</span>';
+                sourceIndicator = '<span style="color: #e74c3c; font-size: 12px;">🔄 Enhanced Mock Data</span>';
+                tradingStatus = '<div style="color: #e74c3c; font-size: 11px; margin-top: 3px;">🔴 Trading Disabled - Mock Data</div>';
             } else {
-                sourceIndicator = '<span style="color: #f39c12; font-size: 12px;">🔄 Mock Data</span>';
+                sourceIndicator = '<span style="color: #e74c3c; font-size: 12px;">🔄 Mock Data</span>';
+                tradingStatus = '<div style="color: #e74c3c; font-size: 11px; margin-top: 3px;">🔴 Trading Disabled - Mock Data</div>';
+            }
+            
+            // Format expiration date for display
+            let expirationDisplay = '';
+            if (expirationDate) {
+                const expDate = new Date(expirationDate);
+                const now = new Date();
+                const daysToExpiry = Math.ceil((expDate - now) / (1000 * 60 * 60 * 24));
+                const expirationStr = expDate.toLocaleDateString('en-US', { 
+                    weekday: 'short', 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                });
+                expirationDisplay = `<div style="color: #9b59b6; font-size: 14px; margin-top: 5px;">📅 Expires: ${expirationStr} (${daysToExpiry} days)</div>`;
             }
             
             let html = `
                 <div style="text-align: center; margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
                     <strong>${symbol ? symbol + ' - ' : ''}Current Stock Price: $${currentPrice.toFixed(2)}</strong><br>
                     ${sourceIndicator}
+                    ${tradingStatus}
+                    ${expirationDisplay}
                 </div>
                 <div style="display: grid; grid-template-columns: 2fr 1fr 2fr; gap: 10px; font-weight: bold; padding: 10px; background: #e9ecef; border-radius: 5px; margin-bottom: 10px;">
                     <div style="text-align: center; color: #27ae60;">CALLS</div>
@@ -1484,7 +1583,7 @@
                 html += `
                     <div style="display: grid; grid-template-columns: 2fr 1fr 2fr; gap: 10px; padding: 8px; border-bottom: 1px solid #e9ecef; font-size: 14px;">
                         <div style="text-align: center; background: ${isITMCall ? '#d4edda' : '#f8f9fa'}; padding: 5px; border-radius: 3px; cursor: pointer; color: #2c3e50;" 
-                             onclick="selectOption('call', ${option.strike}, ${option.call.ask}, ${JSON.stringify(callGreeks).replace(/"/g, '&quot;')})">
+                             onclick="selectOption('call', ${option.strike}, ${option.call.last}, ${option.call.bid}, ${option.call.ask}, ${JSON.stringify(callGreeks).replace(/"/g, '&quot;')})">
                             <strong style="color: #27ae60;">$${option.call.last.toFixed(2)}</strong><br>
                             <small style="color: #7f8c8d;">Δ:${callGreeks.delta.toFixed(2)} Θ:${callGreeks.theta.toFixed(2)}</small>
                         </div>
@@ -1492,7 +1591,7 @@
                             $${option.strike.toFixed(2)}
                         </div>
                         <div style="text-align: center; background: ${isITMPut ? '#f8d7da' : '#f8f9fa'}; padding: 5px; border-radius: 3px; cursor: pointer; color: #2c3e50;" 
-                             onclick="selectOption('put', ${option.strike}, ${option.put.ask}, ${JSON.stringify(putGreeks).replace(/"/g, '&quot;')})">
+                             onclick="selectOption('put', ${option.strike}, ${option.put.last}, ${option.put.bid}, ${option.put.ask}, ${JSON.stringify(putGreeks).replace(/"/g, '&quot;')})">
                             <strong style="color: #e74c3c;">$${option.put.last.toFixed(2)}</strong><br>
                             <small style="color: #7f8c8d;">Δ:${putGreeks.delta.toFixed(2)} Θ:${putGreeks.theta.toFixed(2)}</small>
                         </div>
@@ -1503,10 +1602,18 @@
             display.innerHTML = html;
         }
         
-        function selectOption(type, strike, price, greeks) {
+        function selectOption(type, strike, lastPrice, bidPrice, askPrice, greeks) {
             selectOptionType(type);
             document.getElementById('strikePrice').value = strike;
-            addLog(`📊 Selected ${type.toUpperCase()} $${strike} @ $${price.toFixed(2)}`);
+            
+            // Store all prices for accurate pricing
+            selectedOptionPrices = {
+                last: lastPrice,
+                bid: bidPrice,
+                ask: askPrice
+            };
+            
+            addLog(`📊 Selected ${type.toUpperCase()} $${strike} - Last: $${lastPrice.toFixed(2)}, Bid: $${bidPrice.toFixed(2)}, Ask: $${askPrice.toFixed(2)}`);
             
             if (greeks) {
                 displayGreeks(greeks, type, strike);
@@ -1618,23 +1725,23 @@
             
             switch(strategyType) {
                 case 'coveredCall':
-                    addLog(`📊 Covered Call: Buy 100 shares ${symbol} + Sell 1 Call option`);
-                    addLog(`💡 Strategy: Generate income from stock holdings`);
+                    addOptionsLog(`📊 Covered Call: Buy 100 shares ${symbol} + Sell 1 Call option`);
+                    addOptionsLog(`💡 Strategy: Generate income from stock holdings`);
                     showAlert('Covered Call strategy template loaded!');
                     break;
                 case 'protectivePut':
-                    addLog(`🛡️ Protective Put: Buy 100 shares ${symbol} + Buy 1 Put option`);
-                    addLog(`💡 Strategy: Protect against downside risk`);
+                    addOptionsLog(`🛡️ Protective Put: Buy 100 shares ${symbol} + Buy 1 Put option`);
+                    addOptionsLog(`💡 Strategy: Protect against downside risk`);
                     showAlert('Protective Put strategy template loaded!');
                     break;
                 case 'longStraddle':
-                    addLog(`📐 Long Straddle: Buy 1 Call + Buy 1 Put (same strike)`);
-                    addLog(`💡 Strategy: Profit from large price movements`);
+                    addOptionsLog(`📐 Long Straddle: Buy 1 Call + Buy 1 Put (same strike)`);
+                    addOptionsLog(`💡 Strategy: Profit from large price movements`);
                     showAlert('Long Straddle strategy template loaded!');
                     break;
                 case 'ironCondor':
-                    addLog(`🦅 Iron Condor: Sell Call spread + Sell Put spread`);
-                    addLog(`💡 Strategy: Profit from low volatility`);
+                    addOptionsLog(`🦅 Iron Condor: Sell Call spread + Sell Put spread`);
+                    addOptionsLog(`💡 Strategy: Profit from low volatility`);
                     showAlert('Iron Condor strategy template loaded!');
                     break;
             }
@@ -1645,30 +1752,103 @@
             const strike = parseFloat(document.getElementById('strikePrice').value);
             const quantity = parseInt(document.getElementById('optionQuantity').value);
             
-            if (!strike || !quantity) {
-                showAlert('Please enter strike price and quantity', 'error');
+            // Better validation with specific error messages
+            if (!symbol || symbol.trim() === '') {
+                showAlert('Please enter a stock symbol', 'error');
                 return;
             }
             
-            // Mock option pricing
-            const mockPrice = Math.random() * 10 + 2;
-            const totalCost = mockPrice * quantity * 100; // Options are in contracts of 100
+            if (!strike || strike <= 0) {
+                showAlert('Please enter a valid strike price', 'error');
+                return;
+            }
+            
+            if (!quantity || quantity <= 0) {
+                showAlert('Please enter a valid quantity (number of contracts)', 'error');
+                return;
+            }
+            
+            // Block trading if using mock data
+            if (!currentDataSource || currentDataSource.includes('mock') || currentDataSource.includes('unavailable') || currentDataSource.includes('enhanced')) {
+                showAlert('⚠️ TRADING BLOCKED: Real options data required. Current data source is mock/fallback. Please use a symbol with real market data (like ORCL, AAPL, SPY).', 'error');
+                addOptionsLog(`❌ Trading blocked - using ${currentDataSource || 'unknown'} data source`);
+                return;
+            }
+            
+            // Confirm the sell order for naked calls (high risk)
+            if (selectedAction === 'sell' && selectedOptionType === 'call') {
+                let expirationWarning = '';
+                if (currentOptionsExpiration) {
+                    const expDate = new Date(currentOptionsExpiration);
+                    const now = new Date();
+                    const daysToExpiry = Math.ceil((expDate - now) / (1000 * 60 * 60 * 24));
+                    const expirationStr = expDate.toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric' 
+                    });
+                    expirationWarning = ` expiring ${expirationStr} (${daysToExpiry} days)`;
+                }
+                
+                const confirmed = confirm(`⚠️ RISK WARNING: You are about to sell ${quantity} naked call(s) for ${symbol} at strike $${strike}${expirationWarning}. Naked calls have unlimited risk potential. This is paper trading for educational purposes. Continue?`);
+                if (!confirmed) {
+                    return;
+                }
+            }
+            
+            // Get accurate option price based on trading action
+            let optionPrice = 0;
+            
+            if (selectedOptionPrices && selectedOptionPrices.last) {
+                // Use appropriate price based on action:
+                // - Selling: Use bid price (what you receive)
+                // - Buying: Use ask price (what you pay)
+                if (selectedAction === 'sell') {
+                    optionPrice = selectedOptionPrices.bid;
+                    addOptionsLog(`📊 SELLING ${selectedOptionType} $${strike} at BID price $${optionPrice.toFixed(2)} (what you receive)`);
+                } else {
+                    optionPrice = selectedOptionPrices.ask;
+                    addOptionsLog(`📊 BUYING ${selectedOptionType} $${strike} at ASK price $${optionPrice.toFixed(2)} (what you pay)`);
+                }
+            } else {
+                // Fallback: try to extract from options chain display
+                const chainDisplay = document.getElementById('optionsChainDisplay');
+                if (chainDisplay && chainDisplay.innerHTML) {
+                    // Look for the strike in the displayed chain and extract last price
+                    const priceRegex = new RegExp(`\\$${strike}\.?\\d*<.*?\\$([\\d\\.]+)`);
+                    const match = chainDisplay.innerHTML.match(priceRegex);
+                    if (match) {
+                        const lastPrice = parseFloat(match[1]);
+                        // Estimate bid/ask from last price (bid ~5% lower, ask ~5% higher)
+                        optionPrice = selectedAction === 'sell' ? lastPrice * 0.95 : lastPrice * 1.05;
+                        addOptionsLog(`📊 Estimated ${selectedAction === 'sell' ? 'bid' : 'ask'} price $${optionPrice.toFixed(2)} from last price $${lastPrice.toFixed(2)}`);
+                    } else {
+                        addOptionsLog(`⚠️ Could not find price for ${selectedOptionType} $${strike}, using fallback`);
+                        optionPrice = Math.random() * 2 + 0.5; // Smaller fallback price
+                    }
+                } else {
+                    addOptionsLog(`⚠️ No options chain loaded, using estimated price`);
+                    optionPrice = Math.random() * 2 + 0.5; // Smaller fallback price
+                }
+            }
+            
+            const totalCost = optionPrice * quantity * 100; // Options are in contracts of 100
             
             if (selectedAction === 'buy' && totalCost > optionsPortfolio.cash) {
                 showAlert('Insufficient cash for this trade', 'error');
                 return;
             }
             
-            // Execute mock trade
+            // Execute trade with real pricing
             const position = {
                 id: Date.now(),
                 symbol: symbol,
                 type: selectedOptionType,
                 strike: strike,
                 quantity: selectedAction === 'buy' ? quantity : -quantity,
-                price: mockPrice,
+                price: optionPrice,
                 date: new Date().toLocaleDateString(),
-                cost: totalCost * (selectedAction === 'buy' ? -1 : 1)
+                cost: totalCost * (selectedAction === 'buy' ? -1 : 1),
+                expiration: currentOptionsExpiration
             };
             
             optionsPortfolio.positions.push(position);
@@ -1677,8 +1857,22 @@
             updateOptionsPortfolio();
             updatePnLChart();
             
+            // Format expiration info for log
+            let expirationInfo = '';
+            if (currentOptionsExpiration) {
+                const expDate = new Date(currentOptionsExpiration);
+                const now = new Date();
+                const daysToExpiry = Math.ceil((expDate - now) / (1000 * 60 * 60 * 24));
+                const expirationStr = expDate.toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric',
+                    year: '2-digit'
+                });
+                expirationInfo = ` exp ${expirationStr} (${daysToExpiry}d)`;
+            }
+            
             const action = selectedAction.toUpperCase();
-            addLog(`✅ ${action} ${quantity} ${symbol} ${selectedOptionType.toUpperCase()} $${strike} @ $${mockPrice.toFixed(2)} (Total: $${totalCost.toFixed(2)})`);
+            addOptionsLog(`✅ ${action} ${quantity} ${symbol} ${selectedOptionType.toUpperCase()} $${strike}${expirationInfo} @ $${optionPrice.toFixed(2)} (Total: $${totalCost.toFixed(2)})`);
             showAlert(`${action} order executed successfully!`);
         }
         
@@ -1699,27 +1893,41 @@
                 positionsDisplay.innerHTML = '<p style="color: #7f8c8d; text-align: center; margin: 40px 0;">No open positions</p>';
             } else {
                 let html = `
-                    <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; font-weight: bold; padding: 10px; background: #e9ecef; border-radius: 5px; margin-bottom: 10px; font-size: 12px;">
+                    <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; font-weight: bold; padding: 10px; background: #e9ecef; border-radius: 5px; margin-bottom: 10px; font-size: 11px;">
                         <div>Symbol</div>
                         <div>Type</div>
                         <div>Strike</div>
+                        <div>Expiry</div>
                         <div>Qty</div>
-                        <div>Cost</div>
+                        <div>Premium</div>
                         <div>P&L</div>
                     </div>
                 `;
                 
                 optionsPortfolio.positions.forEach(pos => {
-                    const currentValue = Math.abs(pos.quantity) * (pos.price + (Math.random() - 0.5) * 2) * 100;
-                    const pnl = currentValue + pos.cost;
+                    // Format expiration date
+                    let expiryDisplay = 'N/A';
+                    if (pos.expiration) {
+                        const expDate = new Date(pos.expiration);
+                        expiryDisplay = expDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    }
+                    
+                    // Calculate P&L (simplified for demo)
+                    const currentValue = Math.abs(pos.quantity) * (pos.price + (Math.random() - 0.5) * 0.5) * 100; // Less volatile
+                    const pnl = pos.quantity < 0 ? -currentValue + Math.abs(pos.cost) : currentValue - Math.abs(pos.cost); // For short positions
                     const pnlColor = pnl >= 0 ? '#27ae60' : '#e74c3c';
                     
+                    // Position direction
+                    const direction = pos.quantity > 0 ? 'LONG' : 'SHORT';
+                    const qtyColor = pos.quantity > 0 ? '#27ae60' : '#e74c3c';
+                    
                     html += `
-                        <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; padding: 8px; border-bottom: 1px solid #e9ecef; font-size: 13px;">
-                            <div>${pos.symbol}</div>
+                        <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; padding: 8px; border-bottom: 1px solid #e9ecef; font-size: 12px;">
+                            <div><strong>${pos.symbol}</strong></div>
                             <div>${pos.type.toUpperCase()}</div>
                             <div>$${pos.strike}</div>
-                            <div>${pos.quantity}</div>
+                            <div>${expiryDisplay}</div>
+                            <div style="color: ${qtyColor}; font-weight: bold;">${Math.abs(pos.quantity)} ${direction}</div>
                             <div>$${Math.abs(pos.cost).toLocaleString()}</div>
                             <div style="color: ${pnlColor}; font-weight: bold;">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(0)}</div>
                         </div>
