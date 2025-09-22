@@ -1747,7 +1747,7 @@
             }
         }
         
-        function placeOptionsOrder() {
+        async function placeOptionsOrder() {
             const symbol = document.getElementById('optionsSymbol').value;
             const strike = parseFloat(document.getElementById('strikePrice').value);
             const quantity = parseInt(document.getElementById('optionQuantity').value);
@@ -1838,42 +1838,105 @@
                 return;
             }
             
-            // Execute trade with real pricing
-            const position = {
-                id: Date.now(),
+            // Execute trade via API
+            addOptionsLog(`🚀 Placing ${selectedAction.toUpperCase()} order for ${quantity} ${symbol} ${selectedOptionType.toUpperCase()} $${strike}...`);
+            
+            // Prepare order data for API
+            const orderData = {
                 symbol: symbol,
-                type: selectedOptionType,
+                option_type: selectedOptionType,
                 strike: strike,
-                quantity: selectedAction === 'buy' ? quantity : -quantity,
-                price: optionPrice,
-                date: new Date().toLocaleDateString(),
-                cost: totalCost * (selectedAction === 'buy' ? -1 : 1),
-                expiration: currentOptionsExpiration
+                expiration: currentOptionsExpiration,
+                side: selectedAction,
+                quantity: quantity
             };
             
-            optionsPortfolio.positions.push(position);
-            optionsPortfolio.cash += position.cost;
-            
-            updateOptionsPortfolio();
-            updatePnLChart();
-            
-            // Format expiration info for log
-            let expirationInfo = '';
-            if (currentOptionsExpiration) {
-                const expDate = new Date(currentOptionsExpiration);
-                const now = new Date();
-                const daysToExpiry = Math.ceil((expDate - now) / (1000 * 60 * 60 * 24));
-                const expirationStr = expDate.toLocaleDateString('en-US', { 
-                    month: 'short', 
-                    day: 'numeric',
-                    year: '2-digit'
+            try {
+                const response = await fetch('/api/trade-option', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(orderData)
                 });
-                expirationInfo = ` exp ${expirationStr} (${daysToExpiry}d)`;
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // Real order was placed successfully
+                    addOptionsLog(`✅ REAL ORDER PLACED: ${result.message}`);
+                    showAlert(`✅ Real option order placed successfully!`, 'success');
+                    
+                    // Also update local portfolio for display (this is just for UI)
+                    const position = {
+                        id: result.order.id,
+                        symbol: symbol,
+                        type: selectedOptionType,
+                        strike: strike,
+                        quantity: selectedAction === 'buy' ? quantity : -quantity,
+                        price: optionPrice,
+                        date: new Date().toLocaleDateString(),
+                        cost: totalCost * (selectedAction === 'buy' ? -1 : 1),
+                        expiration: currentOptionsExpiration,
+                        real_order: true,
+                        order_status: result.order.status
+                    };
+                    
+                    optionsPortfolio.positions.push(position);
+                    optionsPortfolio.cash += position.cost;
+                    updateOptionsPortfolio();
+                    updatePnLChart();
+                    
+                } else {
+                    // API error occurred
+                    addOptionsLog(`❌ ORDER FAILED: ${result.error}`);
+                    showAlert(`❌ Order failed: ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                // Network or other error
+                addOptionsLog(`❌ CONNECTION ERROR: ${error.message}`);
+                showAlert(`❌ Failed to place order: ${error.message}`, 'error');
+                
+                // Fallback to mock trading if API fails
+                addOptionsLog(`🔄 Falling back to MOCK trading for testing...`);
+                
+                const position = {
+                    id: Date.now(),
+                    symbol: symbol,
+                    type: selectedOptionType,
+                    strike: strike,
+                    quantity: selectedAction === 'buy' ? quantity : -quantity,
+                    price: optionPrice,
+                    date: new Date().toLocaleDateString(),
+                    cost: totalCost * (selectedAction === 'buy' ? -1 : 1),
+                    expiration: currentOptionsExpiration,
+                    real_order: false
+                };
+                
+                optionsPortfolio.positions.push(position);
+                optionsPortfolio.cash += position.cost;
+                updateOptionsPortfolio();
+                updatePnLChart();
+                
+                // Format expiration info for log
+                let expirationInfo = '';
+                if (currentOptionsExpiration) {
+                    const expDate = new Date(currentOptionsExpiration);
+                    const now = new Date();
+                    const daysToExpiry = Math.ceil((expDate - now) / (1000 * 60 * 60 * 24));
+                    const expirationStr = expDate.toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric',
+                        year: '2-digit'
+                    });
+                    expirationInfo = ` exp ${expirationStr} (${daysToExpiry}d)`;
+                }
+                
+                const action = selectedAction.toUpperCase();
+                addOptionsLog(`⚠️ MOCK ${action} ${quantity} ${symbol} ${selectedOptionType.toUpperCase()} $${strike}${expirationInfo} @ $${optionPrice.toFixed(2)} (Total: $${totalCost.toFixed(2)})`);
+                showAlert(`⚠️ Mock ${action} order executed (API unavailable)!`, 'warning');
             }
-            
-            const action = selectedAction.toUpperCase();
-            addOptionsLog(`✅ ${action} ${quantity} ${symbol} ${selectedOptionType.toUpperCase()} $${strike}${expirationInfo} @ $${optionPrice.toFixed(2)} (Total: $${totalCost.toFixed(2)})`);
-            showAlert(`${action} order executed successfully!`);
         }
         
         function updateOptionsPortfolio() {

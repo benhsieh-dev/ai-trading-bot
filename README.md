@@ -253,10 +253,6 @@ PAPER=True                            # Always use paper trading
 IS_BACKTESTING=False                  # For command line mode
 ```
 
-### Supported Symbols
-**Popular Stocks**: SPY, QQQ, NVDA, AAPL, MSFT, GOOGL, TSLA, META, AMZN, AMD, IWM, GLD, TLT
-**Custom Symbols**: Any symbol supported by Alpaca API
-
 ## Safety Features
 
 - **Paper Trading Only**: No real money can be lost
@@ -285,7 +281,7 @@ python app.py
 - `templates/dashboard.html` - Responsive frontend interface
 - `database.py` - MongoDB integration for trade persistence
 - `requirements.txt` - Lightweight dependency stack (11 packages)
-- `.env` - API configuration (optional)
+
 
 
 ---

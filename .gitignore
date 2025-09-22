@@ -60,3 +60,6 @@ logs/
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Project notes and documentation
+project.md
