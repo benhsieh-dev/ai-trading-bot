@@ -9,13 +9,23 @@ import requests
 
 # Always try to use the lightweight trading bot first
 try:
-    from tradingbot_lightweight import LightweightMLTrader, create_trader, run_quick_analysis
+    from tradingbot_lightweight import LightweightMLTrader, run_quick_analysis
     from tradingbot_lightweight import ALPACA_CREDS, API_KEY, API_SECRET
+    # Try to import Schwab-enabled trader
+    try:
+        from schwab_trader import SchwabMLTrader, create_trader
+        SCHWAB_AVAILABLE = True
+        print("✅ Using Schwab-enabled professional trading stack")
+    except ImportError:
+        from tradingbot_lightweight import create_trader
+        SCHWAB_AVAILABLE = False
+        print("⚠️ Schwab integration not available - using Alpaca-only stack")
     LIGHTWEIGHT_AVAILABLE = True
-    print("✅ Using lightweight professional trading stack")
+    print("✅ Professional trading stack loaded")
 except ImportError:
     LIGHTWEIGHT_AVAILABLE = False
-    print("❌ Lightweight trader not available - using fallback")
+    SCHWAB_AVAILABLE = False
+    print("❌ Trading stack not available - using fallback")
 
 # Fallback to environment variables
 API_KEY = os.environ.get('ALPACA_API_KEY', API_KEY if 'API_KEY' in globals() else 'demo')
@@ -736,7 +746,7 @@ def cancel_all_pending_orders():
 
 @app.route('/api/trade-option', methods=['POST'])
 def place_option_order():
-    """Place a real options order through Alpaca API"""
+    """Place a real options order through Schwab API (with Alpaca fallback)"""
     try:
         data = request.get_json() or {}
         symbol = data.get('symbol', '').upper()
@@ -755,77 +765,43 @@ def place_option_order():
             return jsonify({'error': 'Professional trading not available - API not configured'}), 400
         
         try:
-            # Create trader to access Alpaca API
+            # Create trader with Schwab support
             trader = current_strategy if current_strategy else create_trader()
             
-            # Format option symbol for Alpaca (OCC format)
-            # Example: AAPL  240119C00150000 (AAPL Jan 19, 2024 $150 Call)
-            exp_date = datetime.strptime(expiration, '%Y-%m-%d')
-            exp_str = exp_date.strftime('%y%m%d')
-            option_side = 'C' if option_type == 'call' else 'P'
-            strike_str = f"{int(strike * 1000):08d}"
-            
-            # OCC format: 6-char symbol + 6-char date + C/P + 8-digit strike
-            # Pad symbol to 6 characters
-            padded_symbol = symbol.ljust(6)[:6]
-            option_symbol = f"{padded_symbol}{exp_str}{option_side}{strike_str}"
-            
-            print(f"DEBUG: Formatted option symbol: '{option_symbol}' for {symbol} ${strike} {option_type} exp {expiration}")
-            
-            # Place order through Alpaca
-            order_data = {
-                'symbol': option_symbol,
-                'qty': quantity,
-                'side': side,
-                'type': 'market',  # Use market orders for options
-                'time_in_force': 'day',
-                'order_class': 'simple'
-            }
-            
-            # Check if Alpaca supports options trading at all
-            print(f"DEBUG: Checking if Alpaca paper trading supports options...")
-            
-            # Try to get any option asset to test if options are supported
-            test_symbols = [
-                f"AAPL  251017C00200000",  # Apple $200 call
-                f"SPY   251017C00500000",  # SPY $500 call
-                f"AAPL251017C00200000",   # Alternative format
-                option_symbol,            # Our original symbol
-                f"{symbol}{exp_str}{option_side}{strike_str}"  # No spaces
-            ]
-            
-            found_format = None
-            for test_symbol in test_symbols:
-                try:
-                    asset = trader.api.get_asset(test_symbol)
-                    print(f"DEBUG: SUCCESS! Asset found with format: {test_symbol}")
-                    found_format = test_symbol
-                    break
-                except Exception as e:
-                    print(f"DEBUG: Format '{test_symbol}' failed: {e}")
-            
-            if not found_format:
-                # Check if account supports options
-                try:
-                    account = trader.api.get_account()
-                    print(f"DEBUG: Account trading permissions: options_trading_level={getattr(account, 'options_trading_level', 'not_found')}")
-                    print(f"DEBUG: Account status: {account.status}")
-                except Exception as e:
-                    print(f"DEBUG: Could not check account permissions: {e}")
+            # Use the new unified place_option_order method
+            if hasattr(trader, 'place_option_order'):
+                # This is a SchwabMLTrader with options support
+                result = trader.place_option_order(
+                    symbol=symbol,
+                    option_type=option_type,
+                    strike=strike,
+                    expiration=expiration,
+                    side=side,
+                    quantity=quantity
+                )
                 
-                # Alpaca paper trading doesn't support options - use realistic simulation
-                print(f"DEBUG: Alpaca paper trading doesn't support options. Using realistic simulation.")
+                if result.get('success'):
+                    return jsonify({
+                        'message': result.get('message'),
+                        'order': result,
+                        'source': result.get('broker', 'unknown')
+                    })
+                else:
+                    return jsonify({'error': 'Option order failed', 'details': result}), 500
+            
+            else:
+                # Fallback to original Alpaca-based simulation
+                print("⚠️ Using fallback simulation - enhanced trader not available")
                 
                 # Get real current price for realistic simulation
                 try:
                     current_price = trader.get_current_price(symbol)
-                    print(f"DEBUG: Current {symbol} price: ${current_price}")
+                    print(f"Current {symbol} price: ${current_price}")
                 except:
-                    current_price = 320  # Fallback for ORCL
+                    current_price = 320  # Fallback
                 
                 # Simulate realistic option pricing
                 days_to_exp = (datetime.strptime(expiration, '%Y-%m-%d') - datetime.now()).days
-                moneyness = current_price / strike
                 
                 # Simple Black-Scholes approximation for realistic pricing
                 if option_type == 'call':
@@ -838,14 +814,14 @@ def place_option_order():
                     option_price = intrinsic + time_value
                 
                 # Simulate order execution
-                mock_order_id = f"SIM_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{symbol}_{strike}{option_side}"
+                mock_order_id = f"SIM_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{symbol}_{strike}{option_type[0].upper()}"
                 
                 return jsonify({
                     'message': f'SIMULATED {side} order for {quantity} {symbol} {option_type} ${strike} exp {expiration}',
                     'order': {
                         'id': mock_order_id,
                         'symbol': symbol,
-                        'option_symbol': option_symbol,
+                        'option_symbol': f"{symbol}_{expiration.replace('-', '')}_{option_type[0].upper()}{strike}",
                         'option_type': option_type,
                         'strike': strike,
                         'expiration': expiration,
@@ -854,58 +830,32 @@ def place_option_order():
                         'status': 'filled',
                         'submitted_at': datetime.now().isoformat(),
                         'simulated_price': round(option_price, 2),
-                        'total_cost': round(option_price * quantity * 100, 2)
+                        'total_cost': round(option_price * quantity * 100, 2),
+                        'broker': 'simulation'
                     },
-                    'source': 'realistic_simulation',
-                    'note': 'Alpaca paper trading does not support options. This is a realistic simulation using current market data.'
+                    'source': 'fallback_simulation',
+                    'note': 'Enhanced trading not available. Using realistic simulation with current market data.'
                 })
-            
-            # Submit order to Alpaca
-            order = trader.api.submit_order(**order_data)
-            
-            if order:
-                # Format response
-                return jsonify({
-                    'message': f'Successfully placed {side} order for {quantity} {symbol} {option_type} ${strike} exp {expiration}',
-                    'order': {
-                        'id': order.id,
-                        'symbol': symbol,
-                        'option_symbol': option_symbol,
-                        'option_type': option_type,
-                        'strike': strike,
-                        'expiration': expiration,
-                        'side': side,
-                        'quantity': quantity,
-                        'status': order.status,
-                        'submitted_at': order.submitted_at.isoformat() if order.submitted_at else None
-                    },
-                    'source': 'alpaca_live'
-                })
-            else:
-                return jsonify({'error': 'Failed to place option order - order was rejected'}), 500
                 
         except Exception as e:
             error_msg = str(e)
-            print(f"DEBUG: Alpaca API error: {error_msg}")
+            print(f"ERROR: Option trading failed: {error_msg}")
             
-            # Handle specific Alpaca error cases
+            # Handle common error cases
             if 'insufficient' in error_msg.lower():
                 return jsonify({'error': 'Insufficient buying power for this option trade'}), 400
             elif 'not found' in error_msg.lower() or 'invalid symbol' in error_msg.lower():
-                # Try to provide helpful debugging info
-                suggestion = f"Try a different strike price. Common ORCL strikes might be $150, $160, $170, etc. The exact strike ${strike} may not exist for {expiration}."
+                suggestion = f"Try a different strike price. Common strikes might be multiples of $5 or $10."
                 return jsonify({
                     'error': f'Option contract not found: {symbol} ${strike} {option_type} exp {expiration}',
-                    'suggestion': suggestion,
-                    'formatted_symbol': option_symbol,
-                    'debug': f'Attempted symbol: {option_symbol}'
+                    'suggestion': suggestion
                 }), 400
             elif 'market closed' in error_msg.lower():
                 return jsonify({'error': 'Market is currently closed - options trading unavailable'}), 400
-            elif 'not eligible' in error_msg.lower() or 'permission' in error_msg.lower():
-                return jsonify({'error': 'Account not approved for options trading - check Alpaca account settings'}), 403
+            elif 'authentication' in error_msg.lower() or 'permission' in error_msg.lower():
+                return jsonify({'error': 'API authentication failed - check broker account settings'}), 403
             else:
-                return jsonify({'error': f'Option order failed: {error_msg}', 'debug': f'Symbol used: {option_symbol}'}), 500
+                return jsonify({'error': f'Option order failed: {error_msg}'}), 500
             
     except Exception as e:
         return jsonify({'error': f'Failed to place option order: {str(e)}'}), 500
