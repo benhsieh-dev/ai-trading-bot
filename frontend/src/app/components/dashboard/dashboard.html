@@ -1,0 +1,4 @@
+<h1>🤖AI Trading Bot Dashboard</h1>
+<p>Trading Status: {{ (tradingStatus$ | async)?.status || 'Unknown'}}</p>
+<p>Current Sentiment: {{ (sentiment$ | async).sentiment || 'Loading...' }}</p>
+<button (click)="startBot('SPY', 0.5)">Start Bot</button>

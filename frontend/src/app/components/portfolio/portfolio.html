@@ -1,0 +1,6 @@
+<h1>📊 Portfolio</h1>
+<p>Cash: ${{ (portfolio$ | async)?.cash || 0 }}</p>
+<p>Positions: ${{ (portfolio$ | async)?.positions?.length || 0}}</p>
+
+<button (click)="placeTrade('SPY', 'buy', 10)">Buy 10 SPY</button>
+

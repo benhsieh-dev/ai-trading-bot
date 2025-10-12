@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, send_from_directory, send_file, abort
 import threading
 from datetime import datetime
 import json
@@ -170,6 +170,7 @@ trading_data = {
     'trades_today': 0
 }
 
+# Flask view at port 5001
 @app.route('/')
 def dashboard():
     return render_template('dashboard.html')
@@ -177,6 +178,21 @@ def dashboard():
 @app.route('/portfolio')
 def portfolio_page():
     return render_template('portfolio.html')
+
+# Angular view at port 4200
+# @app.route('/')
+# @app.route('/<path:path>')
+# def serve_angular(path=''):
+#     if path.startswith('api/'):
+#         return abort(404)
+#     try:
+#         return send_from_directory('frontend/dist/frontend/browser', path)
+#     except:
+#         return send_file('frontend/dist/frontend/browser/index.html')
+
+@app.route('/assets/<path:path>')
+def angular_assets(path):
+    return send_from_directory('frontend/dist/frontend/browser/assets', path)
 
 @app.route('/favicon.ico')
 def favicon():

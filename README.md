@@ -15,14 +15,14 @@
 - **Options Trading**: Learn with realistic simulations and live market data
 - **Live Options Chains**: Real-time options data from Alpaca API
 - **Greeks Calculator**: Real-time Delta, Gamma, Theta, Vega calculations
-- **trategy Templates**: Pre-built strategies (Covered Call, Protective Put, Iron Condor)
+- **Strategy Templates**: Pre-built strategies (Covered Call, Protective Put, Iron Condor)
 - **P&L Tracking**: Live profit/loss monitoring with visual charts
 - **Paper Trading**: Risk-free learning environment
 
 ### Analytics 
-- **ulti-Source Sentiment**: TextBlob + Alpaca news API for comprehensive sentiment analysis
+- **Multi-Source Sentiment**: TextBlob + Alpaca news API for comprehensive sentiment analysis
 - **Technical Analysis**: Indicators with fallback algorithms
-- **arket Context**: Historical performance analysis across different market conditions
+- **Market Context**: Historical performance analysis across different market conditions
 - **Visual Analytics**: Interactive charts and performance comparisons
 
 
@@ -36,51 +36,9 @@
   - Scikit-learn (professional ML algorithms)
   - Custom technical indicators
 - **Data Processing**: Pandas, NumPy (optimized for financial data)
-- **Frontend**: Responsive HTML5/CSS3/JavaScript
+- **Frontend**: Responsive HTML5/CSS3/JavaScript, Angular (transition in progress)
 - **Database**: MongoDB Atlas (trade persistence and analytics)
 
-## Quick Start
-
-### **Option 1: Local Development (Full Features)**
-```bash
-# 1. Install lightweight dependencies (2-3 minutes)
-pip install -r requirements.txt
-
-# 2. Set up API keys (optional - works without)
-cp .env.example .env
-# Edit .env with your Alpaca API keys
-
-# 3. Run the trading bot using 1 of the following options
-- python app.py
-- FLASK_ENV=development python app.py
-
-# 4. Access the dashboard
-# http://localhost:5001 (or 5000 if port 5000 is busy)
-```
-
-### **Option 2: Demo Mode (No API Keys Required)**
-```bash
-# Works immediately with realistic demo data
-pip install -r requirements.txt
-python app.py
-```
-
-### **Option 3: Production Deployment (Render/Heroku)**
-- **Render**: Deploys in 2-3 minutes (no dependency issues)
-- **Heroku**: Works with standard Python buildpack
-- **Docker**: Lightweight containers for any platform
-
-## Configuration
-
-### **Environment Variables (.env)**
-```bash
-# Alpaca API (optional - works without)
-ALPACA_API_KEY=your_key_here          
-ALPACA_API_SECRET=your_secret_here    
-PAPER=True                            # Always use paper trading
-
-# MongoDB (optional - works without)
-MONGODB_URI=your_mongodb_atlas_uri    
 
 # Flask settings  
 PORT=5000                             # Default port
@@ -160,6 +118,12 @@ The interface is organized into **two main tabs** for different trading styles:
    ```
    Open http://localhost:5001
 
+python app.py
+ng serve --proxy-config proxy.config.json
+
+http://localhost:5001 # Flask
+http://localhost:4200 # Angular (in progress)
+
 2. **Stock Trading:**
    - Go to **📈 Stock Trading** tab
    - Look up stock symbol and place trade
@@ -192,7 +156,6 @@ This platform is designed for **financial education** and includes:
 - **Realistic simulations** based on actual market data
 - **Comparative analysis** to understand strategy effectiveness
 
-## Technical Architecture
 
 ### Data Sources & APIs
 - **Alpaca Markets API**: 
@@ -208,13 +171,6 @@ This platform is designed for **financial education** and includes:
 - **Lightweight ML Stack**: TextBlob + scikit-learn for professional sentiment analysis  
 - **Intelligent Fallbacks**: Multi-tier graceful degradation for 100% uptime
 
-### Frontend Features
-- **Responsive Design**: Works on desktop and mobile
-- **Real-time Updates**: Live data refresh every 30 seconds
-- **Interactive Charts**: Visual performance comparisons
-- **Tabbed Interface**: Separate stock and options trading areas
-
-## API Endpoints
 
 ### Stock Trading
 - `GET /api/status` - Get bot status and metrics
@@ -237,21 +193,11 @@ This platform is designed for **financial education** and includes:
 - `GET /api/options/<symbol>` - Get options chain for symbol
 - Returns real Alpaca data or enhanced mock data with transparent fallback
 
-## Web Routes
-
 ### Pages
 - `GET /` - Main dashboard with trading controls and analytics
 - `GET /portfolio` - Comprehensive portfolio management page with detailed positions
 
-## Configuration
 
-### Environment Variables (.env)
-```bash
-ALPACA_API_KEY=your_key_here          # Required for real data
-ALPACA_API_SECRET=your_secret_here    # Required for real data  
-PAPER=True                            # Always use paper trading
-IS_BACKTESTING=False                  # For command line mode
-```
 
 ## Safety Features
 
@@ -261,27 +207,6 @@ IS_BACKTESTING=False                  # For command line mode
 - **Educational Warnings**: Clear risk disclosures for options
 - **Data Transparency**: Shows exactly what data source is being used
 
-## Development
-
-### Local Development
-```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Run with auto-reload
-python app.py
-
-# Access at http://localhost:5001
-```
-
-### Key Files
-- `app.py` - Flask web server with environment-aware trading logic
-- `tradingbot_lightweight.py` - Professional lightweight trading implementation
-- `tradingbot.py` - Legacy lumibot implementation (deprecated)  
-- `templates/dashboard.html` - Responsive frontend interface
-- `database.py` - MongoDB integration for trade persistence
-- `requirements.txt` - Lightweight dependency stack (11 packages)
 
 
 
----
