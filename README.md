@@ -19,12 +19,6 @@
 - **P&L Tracking**: Live profit/loss monitoring with visual charts
 - **Paper Trading**: Risk-free learning environment
 
-### Analytics 
-- **Multi-Source Sentiment**: TextBlob + Alpaca news API for comprehensive sentiment analysis
-- **Technical Analysis**: Indicators with fallback algorithms
-- **Market Context**: Historical performance analysis across different market conditions
-- **Visual Analytics**: Interactive charts and performance comparisons
-
 
 ### **Technologies Used**
 - **Backend**: Python, Flask with async handling
@@ -45,70 +39,6 @@ PORT=5000                             # Default port
 FLASK_ENV=development                 # development or production
 ```
 
-### **Three Operating Modes:**
-
-1. **Professional Mode** (with API keys):
-   - Real Alpaca account data and news sentiment
-   - Live portfolio management and trading
-   - Professional backtesting with real market data
-
-2. **Demo Mode** (without API keys):
-   - Realistic mock data based on actual market patterns
-   - Full UI functionality for learning and demonstration
-   - Perfect for educational use and testing
-
-3. **Cloud Mode** (deployed):
-   - Automatically detects cloud environment 
-   - Optimized for production deployment
-   - Graceful fallbacks ensure 100% uptime
-
-## Using the Dashboard
-
-The interface is organized into **two main tabs** for different trading styles:
-
-### Stock Trading Tab
-
-1. **Live Trading Demo:**
-   - Click **"Start Trading"** to initialize the AI bot
-   - Monitor **real-time sentiment analysis** from market news
-   - Track **portfolio performance** and cash positions
-   - Use **manual controls** to test sentiment and portfolio updates
-
-### Options Trading Tab
-
-1. **Paper Portfolio:**
-   - Start with **$100,000 virtual cash**
-   - Track **real-time P&L** and positions
-   - **Educational safety features** prevent real money loss
-
-2. **Options Chain Explorer:**
-   - Load **real options data** from Alpaca API
-   - **Symbol-aware pricing** (different for SPY vs NVDA)
-   - **Interactive options selection** with live Greeks
-
-3. **Advanced Features:**
-   - **Greeks Calculator**: Real-time Delta, Gamma, Theta, Vega
-   - **Strategy Templates**: Covered Call, Protective Put, Long Straddle, Iron Condor
-   - **Scenario Testing**: See how strategies perform in different market conditions
-   - **Risk Analysis**: Built-in risk warnings and educational content
-
-4. **Data Sources:**
-   - Real Alpaca stock prices + real options contracts
-   - Real Alpaca stock prices + enhanced mock options
-   - Realistic mock data for all symbols
-  
-### Sentiment & Backtesting tab
-1. **Historical Backtesting:**
-   - Select **date range** (supports 2020-2024 with realistic market scenarios)
-   - Compare **AI strategy vs Buy-and-Hold** performance
-   - View detailed **performance metrics** (Sharpe ratio, max drawdown, win rate)
-   - **Contextual analysis** based on historical market conditions
-
-2. **Performance Analytics:**
-   - **Visual charts** comparing strategies
-   - **Real-time activity log** with timestamps
-   - **Risk metrics** and trade statistics
-
 ## Quick Start Guide
 
 1. **First Time Setup:**
@@ -124,17 +54,6 @@ ng serve --proxy-config proxy.config.json
 http://localhost:5001 # Flask
 http://localhost:4200 # Angular (in progress)
 
-2. **Stock Trading:**
-   - Go to **📈 Stock Trading** tab
-   - Look up stock symbol and place trade
-   - Click **"Start Trading"** to test the AI strategy
-   - Run **backtests** to see historical performance
-
-3. **Options Education:**
-   - Switch to **🎯 Options Trading** tab
-   - Change the underlying symbol (try SPY, NVDA, AAPL)
-   - Click **"Load Options Chain"** to see real data
-   - Select options to see Greeks and pricing
 
 ## Command Line Usage
 
@@ -146,30 +65,6 @@ python tradingbot.py
 # Stop the web server
 Ctrl+C
 ```
-
-## Educational Value
-
-This platform is designed for **financial education** and includes:
-- **Paper trading only** - no real money at risk
-- **Historical market context** - learn from past scenarios
-- **Risk warnings** and educational content
-- **Realistic simulations** based on actual market data
-- **Comparative analysis** to understand strategy effectiveness
-
-
-### Data Sources & APIs
-- **Alpaca Markets API**: 
-  - Real-time stock quotes (free with paper account)
-  - Options contracts and chains (free with paper account)
-  - Paper trading execution (educational only)
-- **Yahoo Finance**: Historical data for backtesting
-- **FinBERT**: AI sentiment analysis of market news
-
-### Backend Components
-- **Flask Web Server**: Professional RESTful API with async support
-- **Direct Alpaca Integration**: No middleware - enterprise-grade performance
-- **Lightweight ML Stack**: TextBlob + scikit-learn for professional sentiment analysis  
-- **Intelligent Fallbacks**: Multi-tier graceful degradation for 100% uptime
 
 
 ### Stock Trading
@@ -206,6 +101,10 @@ This platform is designed for **financial education** and includes:
 - **Graceful Fallbacks**: Works even when APIs are down
 - **Educational Warnings**: Clear risk disclosures for options
 - **Data Transparency**: Shows exactly what data source is being used
+
+## Local Development
+- npx http-server dist/frontend/browser
+- Python app.py
 
 
 

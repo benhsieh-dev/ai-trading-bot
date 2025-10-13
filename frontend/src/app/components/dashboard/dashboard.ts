@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import {TradingService} from '../../services/trading';
 import {Observable} from 'rxjs';
 import { AsyncPipe } from '@angular/common';
@@ -13,17 +14,23 @@ export class DashboardComponent implements OnInit{
   tradingStatus$!: Observable<any>;
   sentiment$!: Observable<any>;
 
-  constructor(private tradingService: TradingService) {}
+  constructor(
+    private tradingService: TradingService,
+    @Inject(PLATFORM_ID) private platformId: Object) {}
 
   ngOnInit() {
-    this.tradingStatus$ = this.tradingService.getStatus();
-    this.sentiment$ = this.tradingService.getSentiment();
+    if (isPlatformBrowser(this.platformId)) {
+      this.tradingStatus$ = this.tradingService.getStatus();
+      this.sentiment$ = this.tradingService.getSentiment();
+    }
   }
 
   startBot(symbol: string, positionSize: number) {
-    this.tradingService.startTrading({symbol, position_size: positionSize})
-    .subscribe(result => {
-      this.tradingStatus$ = this.tradingService.getStatus();
-    });
+    if (isPlatformBrowser(this.platformId)) {
+      this.tradingService.startTrading({symbol, position_size: positionSize})
+        .subscribe(result => {
+          this.tradingStatus$ = this.tradingService.getStatus();
+        });
+    }
   }
 }
