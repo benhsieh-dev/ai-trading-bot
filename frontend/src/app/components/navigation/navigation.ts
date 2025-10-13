@@ -1,11 +1,13 @@
-import { Component } from '@angular/core';
+import { Component, ViewEncapsulation } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 
 @Component({
   selector: 'app-navigation',
+  standalone: true,
   imports: [RouterLink, RouterLinkActive],
   templateUrl: './navigation.html',
-  styleUrl: './navigation.css'
+  styleUrls: ['./navigation.css'],
+  encapsulation: ViewEncapsulation.None
 })
 export class Navigation {
 

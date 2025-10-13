@@ -37,35 +37,6 @@
 # Flask settings  
 PORT=5000                             # Default port
 FLASK_ENV=development                 # development or production
-```
-
-## Quick Start Guide
-
-1. **First Time Setup:**
-   ```bash
-   pip install -r requirements.txt
-   python app.py
-   ```
-   Open http://localhost:5001
-
-python app.py
-ng serve --proxy-config proxy.config.json
-
-http://localhost:5001 # Flask
-http://localhost:4200 # Angular (in progress)
-
-
-## Command Line Usage
-
-```bash
-# Historical backtesting via command line
-export IS_BACKTESTING=True
-python tradingbot.py
-
-# Stop the web server
-Ctrl+C
-```
-
 
 ### Stock Trading
 - `GET /api/status` - Get bot status and metrics
@@ -102,10 +73,18 @@ Ctrl+C
 - **Educational Warnings**: Clear risk disclosures for options
 - **Data Transparency**: Shows exactly what data source is being used
 
-## Local Development
-- npx http-server dist/frontend/browser
-- Python app.py
+## Local Developments
 
+Two-Terminal Setup:
 
+# Terminal 1: Flask Backend
+cd /Volumes/Samsung/ai-trading-bot
+python app.py
+# Runs on http://localhost:5001
+
+# Terminal 2: Angular Frontend
+cd /Volumes/Samsung/ai-trading-bot/frontend
+ng serve --proxy-config proxy.conf.json
+# Runs on http://localhost:4200
 
 
