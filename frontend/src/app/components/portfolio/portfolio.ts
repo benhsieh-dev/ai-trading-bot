@@ -1,12 +1,12 @@
 import { Component, OnInit, Inject, PLATFORM_ID } from '@angular/core';
-import { isPlatformBrowser } from '@angular/common';
+import {isPlatformBrowser, NgForOf} from '@angular/common';
 import { TradingService } from '../../services/trading';
 import { Observable } from 'rxjs';
-import { AsyncPipe } from '@angular/common';
+import { AsyncPipe, CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-portfolio',
-  imports: [AsyncPipe],
+  imports: [AsyncPipe, CommonModule],
   templateUrl: './portfolio.html',
   styleUrl: './portfolio.css'
 })
@@ -26,11 +26,11 @@ export class PortfolioComponent implements OnInit {
     }
   }
   placeTrade(symbol: string, side: string, quantity: number) {
-    if (!isPlatformBrowser(this.platformId)) {
+    if (isPlatformBrowser(this.platformId)) {
       this.tradingService.placeTrade({symbol, side, quantity})
         .subscribe(result => {
           this.portfolio$ = this.tradingService.getPortfolio();
-        })
+        });
     }
   }
 }

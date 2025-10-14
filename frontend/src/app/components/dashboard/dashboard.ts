@@ -33,4 +33,13 @@ export class DashboardComponent implements OnInit{
         });
     }
   }
+
+  stopBot() {
+    if (isPlatformBrowser(this.platformId)) {
+      this.tradingService.stopTrading()
+        .subscribe(result => {
+          this.tradingStatus$ = this.tradingService.getStatus();
+        });
+    }
+  }
 }

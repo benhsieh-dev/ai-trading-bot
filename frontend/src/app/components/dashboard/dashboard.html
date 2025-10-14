@@ -1,4 +1,22 @@
 <h1>🤖AI Trading Bot Dashboard</h1>
-<p>Trading Status: {{ (tradingStatus$ | async)?.status || 'Unknown'}}</p>
-<p>Current Sentiment: {{ (sentiment$ | async)?.sentiment || 'Loading...' }}</p>
-<button (click)="startBot('SPY', 0.5)">Start Bot</button>
+<div class="dashboard-grid">
+  <div class="status-card">
+    <h2>Trading Status</h2>
+    <p>Status: {{ (tradingStatus$ | async)?.status || 'Stopped' }}</p>
+    <p>Active Symbol: {{ (tradingStatus$ | async)?.symbol || 'None' }}</p>
+  </div>
+
+  <div class="sentiment-card">
+    <h2>Market Sentiment</h2>
+    <p>Current: {{ (sentiment$ | async)?.sentiment || 'Neutral' }}</p>
+    <p>Score: {{ (sentiment$ | async)?.score || 'N/A' }}</p>
+  </div>
+
+  <div class="controls-card">
+    <h2>Trading Controls</h2>
+      <input #symbolInput type="text" placeholder="Symbol (e.g., SPY)" value="SPY"/>
+      <input #sizeInput type="number" placeholder="Position Size" value="0.5" step="0.1"/>
+      <button (click)="startBot(symbolInput.value, +sizeInput.value)">Start Bot</button>
+      <button (click)="stopBot()">Stop Bot</button>
+  </div>
+</div>

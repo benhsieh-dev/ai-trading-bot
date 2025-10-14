@@ -1,6 +1,29 @@
 <h1>📊 Portfolio</h1>
-<p>Cash: ${{ (portfolio$ | async)?.cash || 0 }}</p>
-<p>Positions: ${{ (portfolio$ | async)?.positions?.length || 0}}</p>
 
-<button (click)="placeTrade('SPY', 'buy', 10)">Buy 10 SPY</button>
+<div class="portfolio-grid">
+  <div class="portfolio-summary">
+    <h2>Account Summary</h2>
+    <p>Cash: ${{ (portfolio$ | async)?.cash || '0.00' }}</p>
+    <p>Portfolio Value: ${{ (portfolio$ | async)?.portfolio_value || '0.00' }}</p>
+    <p>Positions: {{ (portfolio$ | async)?.positions?.length || '0.00' }}</p>
+    <p>Day P&L: ${{ (portfolio$ | async)?.day_gain || '0.00' }}</p>
+  </div>
+
+  <div class="positions">
+    <h2>Positions ({{ (portfolio$ | async)?.positions?.length || 0}}</h2>
+    <div *ngFor="let position of (portfolio$ | async)?.positions" class="position-item">
+      <span>{{ position.symbol }}: {{ position.qty }} shares</span>
+      <span>${{ position.market_value || '0.00' }}</span>
+    </div>
+  </div>
+
+  <div class="trade-panel">
+    <h2>Quick Trade</h2>
+    <input #symbolInput type="text" placeholder="Symbol" value="SPY">
+    <input #qtyInput type="number" placeholder="Quantity" value="10">
+    <button (click)="placeTrade(symbolInput.value, 'buy', +qtyInput.value)">Buy</button>
+    <button (click)="placeTrade(symbolInput.value, 'sell', +qtyInput.value)">Sell</button>
+  </div>
+</div>
+
 
