@@ -1,0 +1,171 @@
+.options-container {
+  padding: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.symbol-selector {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.symbol-selector h2 {
+  margin: 0;
+  color: #333;
+}
+
+.symbol-input, .strategy-select {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.symbol-input {
+  min-width: 150px;
+}
+
+.strategy-select {
+  min-width: 180px;
+}
+
+.loading {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+  font-style: italic;
+}
+
+.error {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 1rem;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.error button {
+  background: none;
+  border: none;
+  color: #721c24;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0 0.5rem;
+}
+
+.underlying-price {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background-color: #e7f3ff;
+  border: 1px solid #b8daff;
+  border-radius: 8px;
+}
+
+.underlying-price h3 {
+  margin: 0;
+  color: #004085;
+  font-size: 1.3rem;
+}
+
+.options-tables {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+.calls-section, .puts-section {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.calls-section h3 {
+  background-color: #d4edda;
+  color: #155724;
+  margin: 0;
+  padding: 1rem;
+  border-bottom: 1px solid #c3e6cb;
+}
+
+.puts-section h3 {
+  background-color: #f8d7da;
+  color: #721c24;
+  margin: 0;
+  padding: 1rem;
+  border-bottom: 1px solid #f5c6cb;
+}
+
+.options-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.options-table th {
+  background-color: #f8f9fa;
+  padding: 0.75rem 0.5rem;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid #dee2e6;
+  color: #495057;
+}
+
+.options-table td {
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid #dee2e6;
+  color: #212529;
+}
+
+.options-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.options-table tbody tr:nth-child(even) {
+  background-color: #fdfdfd;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .options-tables {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .symbol-selector {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  
+  .options-table {
+    font-size: 0.8rem;
+  }
+  
+  .options-table th,
+  .options-table td {
+    padding: 0.5rem 0.25rem;
+  }
+}
+
+/* Strike price highlighting */
+.options-table td:first-child {
+  font-weight: 600;
+  color: #007bff;
+}
+
+/* Volume highlighting for active contracts */
+.options-table td:nth-child(5) {
+  font-weight: 500;
+}
