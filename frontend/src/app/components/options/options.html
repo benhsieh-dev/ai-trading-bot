@@ -1,0 +1,105 @@
+<h1>🎯 Options Trading</h1>
+
+<div class="options-container">
+  <div class="symbol-selector">
+    <h2>Select Symbol</h2>
+    <input
+      [(ngModel)]="selectedSymbol"
+       (change)="onSymbolChange()"
+       type="text"
+       placeholder="Enter symbol (e.g., ORCL)"
+       class="symbol-input">
+
+      <select [(ngModel)]="selectedStrategy" class="strategy-select">
+        @for (strategy of strategies; track strategy) {
+          <option [value]="strategy.value">
+            {{ strategy.label }}
+          </option>
+        }
+      </select>
+  </div>
+
+  @if (loading$ | async) {
+    <div class="loading">
+      Loading options chain...
+    </div>
+  }
+
+  @if (error$ | async; as error) {
+    <div class="error">
+      {{ error }}
+      <button (click)="clearError()">x</button>
+    </div>
+  }
+
+  @if (optionsChain$ | async; as optionsChain) {
+    <div class="underlying-price">
+      <h3>{{ selectedSymbol }} Current Price: ${{ optionsChain.underlying_price}}</h3>
+    </div>
+
+    <div class="options-tables">
+      <div class="calls-selection">
+        <h3>Call Options</h3>
+        <table class="options-table">
+          <thead>
+            <tr>
+              <th>Strike</th>
+              <th>Last Price</th>
+              <th>Bid</th>
+              <th>Ask</th>
+              <th>Volume</th>
+              <th>Expiry</th>
+            </tr>
+          </thead>
+          <tbody>
+          <!-- @ts-ignore: TypeScript type confusion with Jasmine mocks -->
+            @for (call of optionsChain?.calls || []; track call.strike) {
+              <tr>
+                <td>${{ call?.strike }}</td>
+                <td>${{ call?.last_price || 'N/A' }}</td>
+                <td>${{ call?.bid || 'N/A' }}</td>
+                <td>${{ call?.ask || 'N/A' }}</td>
+                <td>${{ call?.volume || '0' }}</td>
+                <td>${{ call?.expiry }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        </div>
+
+      <div class="puts-selection">
+        <h3>Put Options</h3>
+        <table class="options-table">
+          <thead>
+            <tr>
+              <th>Strike</th>
+              <th>Last Price</th>
+              <th>Bid</th>
+              <th>Ask</th>
+              <th>Volume</th>
+              <th>Expiry</th>
+            </tr>
+          </thead>
+          <tbody>
+          @for (put of optionsChain?.puts || []; track put.strike) {
+            <tr>
+              <td>{{ put?.strike }}</td>
+              <td>{{ put?.last_price || 'N/A' }}</td>
+              <td>{{ put?.bid || 'N/A' }}</td>
+              <td>{{ put?.ask || 'N/A' }}</td>
+              <td>{{ put?.volume || '0' }}</td>
+              <td>{{ put?.expiry }}</td>
+            </tr>
+          }
+          </tbody>
+        </table>
+      </div>
+
+
+      </div>
+
+  }
+
+
+
+</div>

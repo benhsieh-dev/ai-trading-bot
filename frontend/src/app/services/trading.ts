@@ -20,4 +20,5 @@ export class TradingService {
     runBacktest(data: any) { return this.http.post(`${this.apiUrl}/backtest`, data);}
     placeTrade(data: any) { return this.http.post(`${this.apiUrl}/trade`, data);}
     getOrders() { return this.http.get(`${this.apiUrl}/orders`);}
+    getOptionsChain(symbol: string) { return this.http.get(`${this.apiUrl}/options/${symbol}`);}
 }

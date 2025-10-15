@@ -84,7 +84,10 @@ python app.py
 
 # Terminal 2: Angular Frontend
 cd /Volumes/Samsung/ai-trading-bot/frontend
+
 ng serve --proxy-config proxy.conf.json
-# Runs on http://localhost:4200
+or
+npm start
+http://localhost:4200
 
 
