@@ -1,5 +1,5 @@
 import { Component, OnInit, Inject, PLATFORM_ID } from '@angular/core';
-import {isPlatformBrowser, NgForOf} from '@angular/common';
+import {isPlatformBrowser} from '@angular/common';
 import { TradingService } from '../../services/trading';
 import { Observable } from 'rxjs';
 import { AsyncPipe, CommonModule } from '@angular/common';
@@ -12,6 +12,7 @@ import { AsyncPipe, CommonModule } from '@angular/common';
 })
 
 export class PortfolioComponent implements OnInit {
+  isLoading = false;
   portfolio$!: Observable<any>;
   orders$!: Observable<any>;
 
@@ -21,16 +22,30 @@ export class PortfolioComponent implements OnInit {
 
   ngOnInit() {
     if (isPlatformBrowser(this.platformId)) {
-      this.portfolio$ = this.tradingService.getPortfolio();
-      this.orders$ = this.tradingService.getOrders();
+      this.loadPortfolio();
+        setInterval(() => {
+          this.loadPortfolio();
+      }, 30000);
     }
   }
+
+  loadPortfolio() {
+      this.portfolio$ = this.tradingService.getPortfolio();
+      this.orders$ = this.tradingService.getOrders();
+  }
+
   placeTrade(symbol: string, side: string, quantity: number) {
     if (isPlatformBrowser(this.platformId)) {
       this.tradingService.placeTrade({symbol, side, quantity})
         .subscribe(result => {
-          this.portfolio$ = this.tradingService.getPortfolio();
+          this.loadPortfolio();
         });
     }
+  }
+
+  refreshPortfolio() {
+    this.isLoading = true;
+    this.loadPortfolio();
+    setTimeout(() => this.isLoading = false, 2000)
   }
 }
