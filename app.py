@@ -192,7 +192,7 @@ def serve_angular(path=''):
     try:
         if path and ('.' in path):
             return send_from_directory('frontend/dist/frontend/browser', path)
-        return send_from_directory('frontend/dist/frontend/browser/index.html')
+        return send_file('frontend/dist/frontend/browser/index.html')
     except:
         return send_file('frontend/dist/frontend/browser/index.html')
 

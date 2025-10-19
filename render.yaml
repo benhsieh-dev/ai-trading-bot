@@ -3,7 +3,9 @@ services:
     name: ai-trading-bot
     env: python
     plan: free
-    buildCommand: pip install -r requirements.txt
+    buildCommand: |
+      pip install -r requirements.txt
+      cd frontend && npm install && npm run build
     startCommand: python app.py
     envVars:
       - key: FLASK_ENV
