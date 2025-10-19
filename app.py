@@ -6,6 +6,10 @@ import os
 from database import db_manager
 import random
 import requests
+import mimetypes
+
+mimetypes.add_type('application/javascript', '.js')
+mimetypes.add_type('text/css', '.css')
 
 # Always try to use the lightweight trading bot first
 try:
@@ -171,24 +175,26 @@ trading_data = {
 }
 
 # Flask view at port 5001
-@app.route('/')
-def dashboard():
-    return render_template('dashboard.html')
-
-@app.route('/portfolio')
-def portfolio_page():
-    return render_template('portfolio.html')
+# @app.route('/')
+# def dashboard():
+#     return render_template('dashboard.html')
+#
+# @app.route('/portfolio')
+# def portfolio_page():
+#     return render_template('portfolio.html')
 
 # Angular view at port 4200
-# @app.route('/')
-# @app.route('/<path:path>')
-# def serve_angular(path=''):
-#     if path.startswith('api/'):
-#         return abort(404)
-#     try:
-#         return send_from_directory('frontend/dist/frontend/browser', path)
-#     except:
-#         return send_file('frontend/dist/frontend/browser/index.html')
+@app.route('/')
+@app.route('/<path:path>')
+def serve_angular(path=''):
+    if path.startswith('api/'):
+        return abort(404)
+    try:
+        if path and ('.' in path):
+            return send_from_directory('frontend/dist/frontend/browser', path)
+        return send_from_directory('frontend/dist/frontend/browser/index.html')
+    except:
+        return send_file('frontend/dist/frontend/browser/index.html')
 
 @app.route('/assets/<path:path>')
 def angular_assets(path):
