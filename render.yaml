@@ -1,7 +1,7 @@
 services:
   - type: web
     name: ai-trading-bot
-    env: docker
+    runtime: docker
     plan: free
     dockerCommand: python app.py
     dockerfilePath: ./Dockerfile
