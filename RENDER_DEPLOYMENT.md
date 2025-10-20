@@ -1,33 +1,48 @@
 # Deploying Flask + Angular App to Render.com
 
-This document outlines the proper way to deploy a Flask backend with Angular frontend to Render.com using the Python runtime.
+This document outlines the proper way to deploy a Flask backend with Angular frontend to Render.com.
 
-## Problem with Docker Runtime
+## ✅ Recommended Solution: Docker Runtime (2024)
 
-Initially tried using Docker runtime with `env: docker` in render.yaml, but Render consistently ignored this setting and defaulted to Python runtime, running only `pip install -r requirements.txt` instead of executing custom build commands or Dockerfile.
+**UPDATE**: As of 2024, Render supports changing service runtime via Blueprints. Docker deployment is now the recommended approach.
 
-## Solution: Python Runtime with Built Angular Files
+## Docker Runtime Setup (Recommended)
 
 ### Key Steps:
 
-1. **Remove Angular dist/ from .gitignore**
-   - Edit `frontend/.gitignore`: Comment out `/dist` line
-   - Edit root `.gitignore`: Add `!frontend/dist/` exception after `dist/` line
-
-2. **Build Angular locally**
-   ```bash
-   cd frontend
-   npm install
-   npm run build
+1. **Create Dockerfile** with Node.js + Python multi-stage build:
+   ```dockerfile
+   FROM python:3.11-slim
+   WORKDIR /app
+   
+   # Install Node.js
+   RUN apt-get update && apt-get install -y \
+       gcc g++ curl \
+       && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+       && apt-get install -y nodejs \
+       && rm -rf /var/lib/apt/lists/*
+   
+   # Copy and install dependencies
+   COPY requirements.txt .
+   RUN pip install --no-cache-dir -r requirements.txt
+   
+   COPY frontend/package*.json frontend/
+   RUN cd frontend && npm install
+   
+   # Copy code and build Angular
+   COPY . .
+   RUN cd frontend && npm run build
+   
+   # Create non-root user
+   RUN useradd --create-home --shell /bin/bash appuser && \
+       chown -R appuser:appuser /app
+   USER appuser
+   
+   EXPOSE $PORT
+   CMD ["python", "app.py"]
    ```
 
-3. **Commit built files to git**
-   ```bash
-   git add frontend/dist/
-   git commit -m "Add Angular build files for deployment"
-   ```
-
-4. **Configure Flask to serve Angular**
+2. **Configure Flask to serve Angular**
    ```python
    # In app.py
    @app.route('/', defaults={'path': ''})
@@ -43,14 +58,13 @@ Initially tried using Docker runtime with `env: docker` in render.yaml, but Rend
            return send_file('frontend/dist/frontend/browser/index.html')
    ```
 
-5. **Configure render.yaml for Python runtime**
+3. **Configure render.yaml for Docker runtime**
    ```yaml
    services:
      - type: web
        name: ai-trading-bot
-       env: python  # Use Python runtime, NOT docker
+       env: docker  # Use Docker runtime
        plan: free
-       # No custom buildCommand needed - default pip install works
        envVars:
          - key: FLASK_ENV
            value: production
@@ -63,43 +77,41 @@ Initially tried using Docker runtime with `env: docker` in render.yaml, but Rend
        healthCheckPath: /api/status
    ```
 
-## Important Notes:
+4. **Deploy to Render**
+   ```bash
+   git add .
+   git commit -m "Add Docker deployment setup"
+   git push
+   ```
 
-- **Render's Python runtime ignores custom buildCommand**: Even with `buildCommand` specified, Render runs `pip install -r requirements.txt`
-- **Docker runtime requires explicit service creation**: Cannot change runtime type after service creation
-- **Committing dist/ files is necessary**: Render builds in clean environment without Node.js in Python runtime
-- **File paths matter**: Angular build creates `frontend/dist/frontend/browser/` structure
-- **MIME types**: Flask automatically handles JS/CSS MIME types when serving from `send_from_directory`
+## Docker Deployment Benefits:
+
+- **Builds Angular on Render**: No need to commit dist files or manage local Node.js versions
+- **Reproducible builds**: Guaranteed consistent environment
+- **Runtime flexibility**: Can change service runtime via Blueprints (2024 feature)
+- **Full environment control**: Install any OS packages needed
+- **Clean separation**: Development uses gitignored dist/, production builds fresh
 
 ## Deployment Flow:
 
-1. Build Angular locally → commit dist files → push to GitHub
-2. Render pulls code → runs `pip install -r requirements.txt` → starts Flask
-3. Flask serves Angular SPA from committed dist files
+1. Push code to GitHub → Render pulls → Docker builds image
+2. Docker installs Node.js → builds Angular → installs Python deps
+3. Flask serves Angular SPA from container's built files
 4. All routes except `/api/*` serve Angular, API routes handled by Flask
 
-## Alternative: Docker Runtime (Updated 2024)
+## Legacy: Python Runtime with Committed Dist Files
 
-As of 2024, you **CAN** change existing service runtime using Render Blueprints:
+For reference, the previous approach using Python runtime:
 
-1. **Update render.yaml**:
-   ```yaml
-   services:
-     - type: web
-       name: ai-trading-bot
-       env: docker  # Changed from python to docker
-       plan: free
-       # No buildCommand needed - Docker uses Dockerfile
-   ```
+### Issues with Python Runtime:
+- **Custom buildCommand ignored**: Render always runs `pip install -r requirements.txt`
+- **No Node.js available**: Cannot build Angular during deployment
+- **Requires local build**: Must commit dist files to git
+- **Local Node.js dependency**: Need compatible Node.js version locally
 
-2. **Ensure Dockerfile exists** with Node.js + Python multi-stage build
+### Python Runtime Process:
+1. Build Angular locally → commit dist files → push to GitHub
+2. Render runs `pip install -r requirements.txt` → starts Flask
+3. Flask serves Angular from committed dist files
 
-3. **Commit and deploy** - Render will switch to Docker runtime
-
-Benefits of Docker approach:
-- Builds Angular on Render (no need to commit dist files)
-- Reproducible builds
-- Full control over environment
-- No local Node.js version issues
-
-However, the Python runtime approach with committed dist files is simpler for basic deployments.
+**Recommendation**: Use Docker runtime instead for cleaner, more reliable deployments.
