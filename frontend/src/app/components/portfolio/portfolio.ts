@@ -8,11 +8,11 @@ import { AsyncPipe, CommonModule } from '@angular/common';
   selector: 'app-portfolio',
   imports: [AsyncPipe, CommonModule],
   templateUrl: './portfolio.html',
-  styleUrl: './portfolio.css'
+  styleUrls: ['./portfolio.css']
 })
 
 export class PortfolioComponent implements OnInit {
-  isLoading = false;
+  isLoading = false
   portfolio$!: Observable<any>;
   orders$!: Observable<any>;
 

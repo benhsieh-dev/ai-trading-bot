@@ -24,7 +24,7 @@
     <button (click)="placeTrade(symbolInput.value, 'buy', +qtyInput.value)">Buy</button>
     <button (click)="placeTrade(symbolInput.value, 'sell', +qtyInput.value)">Sell</button>
     <button (click)="refreshPortfolio()" [disabled]="isLoading">
-      🔄{{ isLoading ? 'Loading...' : 'Refresh Portfolio' }}
+      🔄 {{ isLoading ? 'Loading...' : 'Refresh Portfolio' }}
     </button>
   </div>
 </div>

@@ -21,8 +21,40 @@
   border-radius: 4px;
 }
 
+/*refresh button */
 .trade-panel input, .trade-panel button {
   margin: 0.5rem;
   padding: 0.5rem 1rem;
   border-radius: 4px;
+}
+
+.trade-panel button {
+  color: white;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.trade-panel button:first-of-type {
+  background-color: #28a745; /* Green for Buy button */
+}
+
+.trade-panel button:first-of-type:hover {
+  background-color: #218838;
+}
+
+.trade-panel button:nth-of-type(2) {
+  background-color: #dc3545; /* Red for Sell button */
+}
+
+.trade-panel button:nth-of-type(2):hover {
+  background-color: #c82333;
+}
+
+.trade-panel button:nth-of-type(3) {
+  background-color: #007bff; /* Blue for Refresh button */
+}
+
+.trade-panel button:nth-of-type(3):hover {
+  background-color: #0056b3;
 }
