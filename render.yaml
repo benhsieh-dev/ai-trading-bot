@@ -3,6 +3,8 @@ services:
     name: ai-trading-bot
     env: docker
     plan: free
+    dockerCommand: python app.py
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: FLASK_ENV
         value: production
