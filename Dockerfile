@@ -17,10 +17,10 @@ RUN apt-get update && apt-get install -y \
 RUN node --version && npm --version
 
 # Copy requirements first for better Docker layer caching
-COPY requirements.txt .
+COPY requirements-docker.txt .
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements-docker.txt
 
 # Copy frontend package files for caching
 COPY frontend/package*.json frontend/
