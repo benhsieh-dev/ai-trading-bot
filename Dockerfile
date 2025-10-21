@@ -42,12 +42,12 @@ RUN useradd --create-home --shell /bin/bash appuser && \
     chown -R appuser:appuser /app
 USER appuser
 
-# Expose port 4000 for Angular SSR server (default port)
-EXPOSE 4000
+# Expose port (Render will set PORT environment variable)
+EXPOSE $PORT
 
-# Health check to ensure the Angular app is running
+# Health check to ensure the Angular app is running (uses PORT from environment)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:4000/ || exit 1
+    CMD curl -f http://localhost:${PORT:-4000}/ || exit 1
 
 # Default command to run the Angular SSR server
 WORKDIR /app/frontend

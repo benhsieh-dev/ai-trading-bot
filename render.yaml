@@ -1,13 +1,9 @@
 services:
   - type: web
     name: ai-trading-bot
-    runtime: docker
     plan: free
-    dockerCommand: cd frontend && npm run serve:ssr:frontend
     dockerfilePath: ./Dockerfile
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: "4000"
     healthCheckPath: /
