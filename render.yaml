@@ -3,15 +3,11 @@ services:
     name: ai-trading-bot
     runtime: docker
     plan: free
-    dockerCommand: python app.py
+    dockerCommand: cd frontend && npm run serve:ssr:frontend
     dockerfilePath: ./Dockerfile
     envVars:
-      - key: FLASK_ENV
+      - key: NODE_ENV
         value: production
-      - key: PAPER
-        value: "True"
-      - key: ALPACA_API_KEY
-        sync: false
-      - key: ALPACA_API_SECRET
-        sync: false
-    healthCheckPath: /api/status
+      - key: PORT
+        value: "4000"
+    healthCheckPath: /

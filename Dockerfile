@@ -42,12 +42,13 @@ RUN useradd --create-home --shell /bin/bash appuser && \
     chown -R appuser:appuser /app
 USER appuser
 
-# Expose port (Render uses PORT environment variable)
-EXPOSE $PORT
+# Expose port 4000 for Angular SSR server (default port)
+EXPOSE 4000
 
-# Health check to ensure the app is running (Render uses dynamic port)
+# Health check to ensure the Angular app is running
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:$PORT/api/status || exit 1
+    CMD curl -f http://localhost:4000/ || exit 1
 
-# Default command to run the application
-CMD ["python", "app.py"]
+# Default command to run the Angular SSR server
+WORKDIR /app/frontend
+CMD ["npm", "run", "serve:ssr:frontend"]
