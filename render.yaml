@@ -1,8 +1,10 @@
 services:
   - type: web
     name: ai-trading-bot
+    env: docker
     plan: free
     dockerfilePath: ./Dockerfile
+    dockerContext: .
     envVars:
       - key: NODE_ENV
         value: production
