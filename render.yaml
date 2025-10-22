@@ -2,11 +2,7 @@ services:
   - type: web
     name: ai-trading-bot
     plan: free
-    buildCommand: |
-      pip install -r requirements.txt
-      curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-      sudo apt-get install -y nodejs
-      cd frontend && npm install && npm run build
+    buildCommand: chmod +x build.sh && ./build.sh
     startCommand: python app.py
     envVars:
       - key: FLASK_ENV
