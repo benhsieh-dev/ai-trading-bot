@@ -1,11 +1,20 @@
 services:
   - type: web
     name: ai-trading-bot
-    runtime: docker
     plan: free
-    dockerfilePath: ./Dockerfile
-    dockerContext: .
+    buildCommand: |
+      pip install -r requirements.txt
+      curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+      sudo apt-get install -y nodejs
+      cd frontend && npm install && npm run build
+    startCommand: python app.py
     envVars:
-      - key: NODE_ENV
+      - key: FLASK_ENV
         value: production
-    healthCheckPath: /
+      - key: PAPER
+        value: "True"
+      - key: ALPACA_API_KEY
+        sync: false
+      - key: ALPACA_API_SECRET
+        sync: false
+    healthCheckPath: /api/status
