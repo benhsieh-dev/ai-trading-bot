@@ -21,4 +21,6 @@ export class TradingService {
     placeTrade(data: any) { return this.http.post(`${this.apiUrl}/trade`, data);}
     getOrders() { return this.http.get(`${this.apiUrl}/orders`);}
     getOptionsChain(symbol: string) { return this.http.get(`${this.apiUrl}/options/${symbol}`);}
+    getNews(symbol: string) { return this.http.get(`${this.apiUrl}/news/${symbol}`);}
+    refreshSentiment() { return this.http.get(`${this.apiUrl}/refresh_sentiment`);}
 }

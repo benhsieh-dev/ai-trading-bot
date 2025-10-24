@@ -1,0 +1,57 @@
+<div class="analysis-form">
+  <div class="form-group">
+    <label>Symbol to Analyze:</label>
+    <input type="text"
+           [(ngModel)]="selectedSymbol"
+           placeholder="e.g., SPY, AAPL, NVDA"
+           style="text-transform: uppercase">
+  </div>
+
+  <div class="form-group">
+    <label>News Lookback Period</label>
+    <select [(ngModel)]="selectedPeriod">
+      <option value="1">1 Day</option>
+      <option value="3" selected>3 Days</option>
+      <option value="7">7 Days</option>
+      <option value="14">14 Days</option>
+    </select>
+  </div>
+
+  <button (click)="analyzeSentiment()"
+    [disabled]="isAnalyzing"
+    class="analyze-btn">{{ isAnalyzing ? '🔄 Analyzing...' : '🧠 Analyze Sentiment' }}</button>
+</div>
+
+@if (sentimentResults) {
+  <div class="sentiment-results">
+    <h5>Sentiment Analysis Results</h5>
+    <div class="results-grid">
+      <div class="result-card">
+        <div class="metric-value"
+             [style.color]="getSentimentColor(sentimentResults.sentiment)">
+          {{ sentimentResults.sentiment | titlecase }}
+        </div>
+        <div class="metric-label">Sentiment</div>
+        </div>
+
+      <div class="result-card">
+        <div class="metric-value">
+          {{ (sentimentResults.confidence * 100).toFixed(1) }}%
+        </div>
+        <div class="metric-label">AI Confidence</div>
+      </div>
+
+      <div class="result-card">
+        <div class="metric-value">
+          {{ sentimentResults.articleCount }}
+        </div>
+        <div class="metric-label">News Articles</div>
+      </div>
+
+    </div>
+    
+    <div class="analysis-timestamp">
+      Last Updated: {{ sentimentResults.timestamp | date: 'short' }}
+    </div>
+  </div>
+}

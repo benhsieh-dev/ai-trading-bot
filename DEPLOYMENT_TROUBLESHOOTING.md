@@ -142,18 +142,56 @@ Consider platforms that better support Docker deployments:
 ### File Renames
 - `requirements.txt` → `requirements-docker.txt`
 
+### 7. Python deployment with inline Angular build commands
+**What we tried:**
+```yaml
+services:
+  - type: web
+    name: ai-trading-bot
+    plan: free
+    buildCommand: |
+      pip install -r requirements.txt
+      curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+      sudo apt-get install -y nodejs
+      cd frontend && npm install && npm run build
+    startCommand: python app.py
+```
+
+**Result:** Only `pip install -r requirements.txt` executed, all Node.js/Angular steps ignored
+
+**Why it failed:** Render's Python auto-detection overrode custom buildCommand. Multi-line commands in render.yaml were completely ignored.
+
+### 8. Python deployment with build script
+**What we tried:**
+- Created `build.sh` script with Node.js installation and Angular build
+- Updated render.yaml: `buildCommand: chmod +x build.sh && ./build.sh`
+- Script contained same steps as attempt #7
+
+**Result:** Build script was **completely ignored**. Log starts with `pip install` cached packages, no sign of script execution.
+
+**Why it failed:** Render's Python auto-detection completely overrode the custom `buildCommand`. The build script was never executed - Render went straight to `pip install -r requirements.txt`.
+
 ## Current State
 
 - **Service type:** Python runtime (cannot be changed)
-- **Deployment:** Flask backend running on port 10000
-- **Frontend:** Angular SSR built but not served
-- **CSS issue:** Still present (serving Flask instead of Angular)
+- **Deployment:** Flask backend running on port 10000  
+- **Frontend:** Flask serves Angular build from `frontend/dist/frontend/browser/`
+- **CSS issue:** Still present - Angular build is outdated (styles-5INURTSO.css is 0 bytes)
+- **Root problem:** Angular build never refreshes because Render won't run Node.js build steps
+
+## Key Insights
+
+1. **Render ignores custom build commands** when it detects a Python project
+2. **Angular build is stale** - the CSS file is empty (0 bytes) from failed local build
+3. **Flask is serving correctly** - it's serving from `frontend/dist/frontend/browser/` as intended
+4. **The issue is build-time, not runtime** - we need fresh Angular build with CSS
 
 ## Next Steps
 
-To actually serve the Angular frontend, we need to either:
-1. Create a new Render service with Docker runtime, OR
-2. Use a different deployment platform, OR  
-3. Modify the Flask backend to serve the Angular build files
+To actually get latest CSS, we need to either:
+1. **Create new Render service** with Docker runtime from scratch, OR
+2. **Use different deployment platform** that better supports mixed Python/Node.js builds, OR  
+3. **Fix the Angular build locally** and commit working dist files, OR
+4. **Use Render's native Node.js runtime** for frontend only (separate from Python backend)
 
-**Note:** All attempts to change the existing service from Python to Docker runtime failed due to Render's limitations.
+**Note:** All attempts to modify existing Python service to build Angular have failed due to Render's auto-detection limitations.
