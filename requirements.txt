@@ -1,5 +1,6 @@
 # Web Framework
 flask>=3.0.0,<4.0.0
+flask-cors>=6.0.0,<7.0.0
 gunicorn>=22.0.0,<23.0.0
 
 # Core Trading Stack
