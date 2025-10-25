@@ -20,18 +20,16 @@
 - **Paper Trading**: Risk-free learning environment
 
 
-### **Technologies Used**
-- **Backend**: Python, Flask with async handling
-- **Trading APIs**: 
-  - Direct Alpaca REST API (stocks, options, news, portfolio)
-  - Yahoo Finance (historical data and backtesting)
-- **AI/ML**: 
-  - TextBlob (lightweight sentiment analysis)
-  - Scikit-learn (professional ML algorithms)
-  - Custom technical indicators
-- **Data Processing**: Pandas, NumPy (optimized for financial data)
-- **Frontend**: Responsive HTML5/CSS3/JavaScript, Angular (transition in progress)
-- **Database**: MongoDB Atlas (trade persistence and analytics)
+### Technologies Used
+- Flask
+- Angular
+- Alpaca API
+- Python
+- TypeScript
+- HTML
+- CSS
+
+
 
 
 # Flask settings  
@@ -85,8 +83,6 @@ python app.py
 # Terminal 2: Angular Frontend
 cd /Volumes/Samsung/ai-trading-bot/frontend
 
-ng serve --proxy-config proxy.conf.json
-or
 npm start
 http://localhost:4200
 

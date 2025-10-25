@@ -64,3 +64,5 @@ __pycache__/
 
 # Project notes and documentation
 project.md
+
+DEPLOYMENT_TROUBLESHOOTING.md

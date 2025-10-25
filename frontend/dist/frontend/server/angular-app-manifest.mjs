@@ -33,13 +33,13 @@ export default {
 ],
   entryPointToBrowserMapping: undefined,
   assets: {
-    'index.csr.html': {size: 492, hash: 'c3a507f204541eece77beb42b912083907bb11370e09686673b17d543b13d63e', text: () => import('./assets-chunks/index_csr_html.mjs').then(m => m.default)},
-    'index.server.html': {size: 1005, hash: 'f3233737e9f0cf8d29e37739049604f9aaca487b808038e2b4411b50eb404dab', text: () => import('./assets-chunks/index_server_html.mjs').then(m => m.default)},
-    'index.html': {size: 4272, hash: '076fca5c3687b0e59bb5b365ecabb27bb2aa9a7eb976f3e3e972e362d0687c35', text: () => import('./assets-chunks/index_html.mjs').then(m => m.default)},
-    'portfolio/index.html': {size: 5204, hash: '2fd6cdfff8a2d2bd1a2dc4cea7e5a10027c1f470b641768011399c0c6f5d71f8', text: () => import('./assets-chunks/portfolio_index_html.mjs').then(m => m.default)},
-    'options/index.html': {size: 6866, hash: '679bd07085d7f26501412bd20d581e54d4d1267968e73ca29148d2c96c31b691', text: () => import('./assets-chunks/options_index_html.mjs').then(m => m.default)},
-    'sentiment/index.html': {size: 5106, hash: 'c63beaa2037335c9b67d14d33e4d26e18590014d03e3a0bd4a7c4c58f2925d62', text: () => import('./assets-chunks/sentiment_index_html.mjs').then(m => m.default)},
-    'dashboard/index.html': {size: 4279, hash: '5ef2dfea20c6c50ed40b0132256c68098c9568d898c5d2ebeb0e40d0be75e4fc', text: () => import('./assets-chunks/dashboard_index_html.mjs').then(m => m.default)},
+    'index.csr.html': {size: 492, hash: 'ffdb94a5b10eea15227ba0b4afcbed435aea69795e3e9fcf3e99cb47d3c4c1ea', text: () => import('./assets-chunks/index_csr_html.mjs').then(m => m.default)},
+    'index.server.html': {size: 1005, hash: '00245c3d18e49a688375af688d54a9fbcd43b1598959cf43407397582b39b05a', text: () => import('./assets-chunks/index_server_html.mjs').then(m => m.default)},
+    'index.html': {size: 4272, hash: 'ba32f814663e1e1bb23350b10f2544d6b92df5cd0188ad3e2d1a03cc2a03042f', text: () => import('./assets-chunks/index_html.mjs').then(m => m.default)},
+    'portfolio/index.html': {size: 5204, hash: '940a16367148939cbeec5957c6adfa002a65786b8480bb0d71a0297cdfeb7f09', text: () => import('./assets-chunks/portfolio_index_html.mjs').then(m => m.default)},
+    'sentiment/index.html': {size: 5649, hash: 'd157f062f08f18f51bded3815c6f6aecb43ce939d38aff3303016e0796cfdb3f', text: () => import('./assets-chunks/sentiment_index_html.mjs').then(m => m.default)},
+    'dashboard/index.html': {size: 4279, hash: 'a1c860154a8aa647a18ac561598c7eba805bfbbcb2ae3fa8f4f00e123aa43b44', text: () => import('./assets-chunks/dashboard_index_html.mjs').then(m => m.default)},
+    'options/index.html': {size: 6866, hash: '5c571935ae82f00cfeb2179c873f6cf23a3d4f4adf99b59e5b9fde0f9ff96ed4', text: () => import('./assets-chunks/options_index_html.mjs').then(m => m.default)},
     'styles-5INURTSO.css': {size: 0, hash: 'menYUTfbRu8', text: () => import('./assets-chunks/styles-5INURTSO_css.mjs').then(m => m.default)}
   },
 };

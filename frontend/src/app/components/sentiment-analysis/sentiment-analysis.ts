@@ -10,7 +10,7 @@ import { TradingService } from '../../services/trading';
   styleUrl: './sentiment-analysis.css'
 })
 export class SentimentAnalysisComponent {
-  
+
   constructor(private tradingService: TradingService) {}
   selectedSymbol = 'SPY';
   selectedPeriod: number = 3;
@@ -24,12 +24,16 @@ export class SentimentAnalysisComponent {
     timestamp: string;
   } | null = null;
 
+  newsArticles: any[] = [];
+  isLoadingNews: boolean = false;
+
   analyzeSentiment() {
     if (!this.selectedSymbol.trim()) return;
 
     this.isAnalyzing = true;
     this.sentimentResults = null;
 
+    console.log('Calling getSentiment for:', this.selectedSymbol.toUpperCase());
     this.tradingService.getSentiment(this.selectedSymbol.toUpperCase())
       .subscribe({
         next: (data: any) => {
@@ -41,12 +45,32 @@ export class SentimentAnalysisComponent {
             timestamp: new Date().toISOString()
           };
           this.isAnalyzing = false;
+          // Automatically load news after sentiment analysis
+          this.loadNews();
         },
         error: (error) => {
           console.error('Error fetching sentiment analysis:', error);
+          console.error('Error status:', error.status);
+          console.error('Error URL:', error.url);
+          console.error('Error message:', error.message);
           this.isAnalyzing = false;
         }
       });
+  }
+
+  loadNews() {
+    this.isLoadingNews = true;
+    this.tradingService.getNews(this.selectedSymbol.toUpperCase())
+      .subscribe({
+        next: (news: any) => {
+          this.newsArticles = news.articles || news || [];
+          this.isLoadingNews = false;
+        },
+        error: (error) => {
+          console.error('Error fetching news:', error);
+          this.isLoadingNews = false;
+        }
+      })
   }
 
   getSentimentColor(sentiment: string): string {

@@ -47,11 +47,32 @@
         </div>
         <div class="metric-label">News Articles</div>
       </div>
-
     </div>
-    
+
     <div class="analysis-timestamp">
       Last Updated: {{ sentimentResults.timestamp | date: 'short' }}
     </div>
+  </div>
+
+  <div class="news-section">
+    <h5>📰 Related News</h5>
+
+    @if (isLoadingNews) {
+      <div>Loading news...</div>
+    } @else if (!isLoadingNews && newsArticles.length === 0) {
+      <div>No recent news articles found.</div>
+    } @else if (newsArticles.length > 0) {
+      <div class="news-list">
+        @for (article of newsArticles; track article.url) {
+          <div class="news-item">
+            <a [href]="article.url" target="_blank">{{ article.headline || article.title }}</a>
+            <div class="news-meta">
+              <span>{{ article.source || 'Unknown Source' }}</span>
+              <span>{{ article.created_at || article.publishedAt | date: 'short' }}</span>
+            </div>
+          </div>
+        }
+      </div>
+    }
   </div>
 }

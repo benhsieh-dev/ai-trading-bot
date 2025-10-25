@@ -79,3 +79,35 @@
   text-align: center;
   margin-top: 15px;
 }
+
+.news-section {
+  margin-top: 1.5rem;
+}
+
+.news-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.news-item {
+  padding: 0.75rem;
+  border-radius: 8px;
+  background: #f8f9fa;
+  transition: background 0.2s ease;
+}
+
+.news-item:hover {
+  background: #eef2f3;
+}
+
+.news-item a {
+  font-weight: 600;
+  color: #007bff;
+  text-decoration: none;
+}
+
+.news-meta {
+  font-size: 0.85rem;
+  color: #666;
+}

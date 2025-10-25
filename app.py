@@ -1,4 +1,5 @@
 from flask import Flask, render_template, jsonify, request, send_from_directory, send_file, abort
+from flask_cors import CORS
 import threading
 from datetime import datetime
 import json
@@ -70,6 +71,7 @@ class MockMLTrader:
         return mock_prices.get(symbol, 100 + random.uniform(-10, 10))
 
 app = Flask(__name__)
+CORS(app, origins=['http://localhost:4200'])
 
 def generate_realistic_results(symbol, start_year, end_year, position_size):
     """Generate realistic backtest results based on market conditions and historical performance"""

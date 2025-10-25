@@ -1,11 +1,12 @@
 import { Injectable } from '@angular/core';
-import {HttpClient} from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class TradingService {
-  private apiUrl = '/api';
+  private apiUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
 
@@ -15,6 +16,7 @@ export class TradingService {
     getPortfolio() { return this.http.get(`${this.apiUrl}/portfolio`);}
     getSentiment(symbol?: string) {
       const url = symbol ? `${this.apiUrl}/sentiment/${symbol}` : `${this.apiUrl}/sentiment`;
+      console.log('TradingService calling URL:', url);
       return this.http.get(url);
     }
     runBacktest(data: any) { return this.http.post(`${this.apiUrl}/backtest`, data);}
