@@ -1,0 +1,58 @@
+.trade-history-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.table-container {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+table {
+  font-size: 0.875rem;
+}
+
+th {
+  position: sticky;
+  top: 0;
+  background-color: #f9fafb;
+  font-weight: 600;
+}
+
+.dark th {
+  background-color: #374151;
+}
+
+.loading-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.trade-summary-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.database-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.database-connected {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.database-disconnected {
+  background-color: #fef2f2;
+  color: #dc2626;
+}

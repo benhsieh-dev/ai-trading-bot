@@ -1,5 +1,14 @@
 <h1>📊 Portfolio</h1>
 
+<!-- MongoDB Connection Status -->
+<div class="mb-4 p-3 rounded-lg" [ngClass]="(portfolio$ | async)?.source === 'professional' ? 'bg-green-100 border border-green-300' : 'bg-yellow-100 border border-yellow-300'">
+  <div class="flex items-center gap-2">
+    <span *ngIf="(portfolio$ | async)?.source === 'professional'" class="text-green-600">✅ MongoDB Connected</span>
+    <span *ngIf="(portfolio$ | async)?.source !== 'professional'" class="text-yellow-600">⚠️ Demo Mode</span>
+    <span class="text-sm text-gray-600">Data saved to database automatically</span>
+  </div>
+</div>
+
 <div class="portfolio-grid">
   <div class="portfolio-summary">
     <h2>Account Summary</h2>

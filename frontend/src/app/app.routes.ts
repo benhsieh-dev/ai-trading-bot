@@ -3,6 +3,7 @@ import { DashboardComponent } from './components/dashboard/dashboard';
 import { PortfolioComponent } from './components/portfolio/portfolio';
 import { OptionsComponent } from './components/options/options';
 import {SentimentAnalysisComponent} from './components/sentiment-analysis/sentiment-analysis';
+import { TradeHistoryComponent } from './components/trade-history/trade-history';
 
 export const routes: Routes = [
   { path: '', component: DashboardComponent },
@@ -10,5 +11,6 @@ export const routes: Routes = [
   { path: 'options', component: OptionsComponent },
   { path: 'portfolio', component: PortfolioComponent },
   { path: 'sentiment', component: SentimentAnalysisComponent },
+  { path: 'history', component: TradeHistoryComponent },
   { path: '**', redirectTo: '' }
 ];

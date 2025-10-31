@@ -21,13 +21,14 @@
 
 
 ### Technologies Used
-- Flask
-- Angular
 - Alpaca API
+- Angular
+- CSS
+- Flask
+- HTML
+- Neon
 - Python
 - TypeScript
-- HTML
-- CSS
 
 
 

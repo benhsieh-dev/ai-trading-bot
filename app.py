@@ -1066,6 +1066,58 @@ def generate_mock_options(symbol, current_price):
     
     return strikes
 
+@app.route('/api/trade-history')
+def get_trade_history():
+    """Get trade history from MongoDB"""
+    try:
+        user_id = request.args.get('user_id', 'default')
+        limit = int(request.args.get('limit', 100))
+        
+        if db_manager.is_connected():
+            trades = db_manager.get_trade_history(user_id, limit)
+            return jsonify({
+                'trades': trades,
+                'count': len(trades),
+                'source': 'postgresql'
+            })
+        else:
+            return jsonify({
+                'trades': [],
+                'count': 0,
+                'source': 'no_database',
+                'message': 'Database not connected'
+            })
+    
+    except Exception as e:
+        return jsonify({'error': f'Failed to get trade history: {str(e)}'}), 500
+
+@app.route('/api/portfolio-history')
+def get_portfolio_history():
+    """Get portfolio performance over time from MongoDB"""
+    try:
+        user_id = request.args.get('user_id', 'default')
+        
+        if db_manager.is_connected():
+            # Get portfolio snapshots from database
+            portfolio = db_manager.get_portfolio(user_id)
+            trades = db_manager.get_trade_history(user_id, 50)
+            
+            return jsonify({
+                'current_portfolio': portfolio,
+                'recent_trades': trades,
+                'source': 'postgresql'
+            })
+        else:
+            return jsonify({
+                'current_portfolio': None,
+                'recent_trades': [],
+                'source': 'no_database',
+                'message': 'Database not connected'
+            })
+    
+    except Exception as e:
+        return jsonify({'error': f'Failed to get portfolio history: {str(e)}'}), 500
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
     flask_env = os.environ.get('FLASK_ENV', 'development')

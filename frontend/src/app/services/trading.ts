@@ -25,4 +25,13 @@ export class TradingService {
     getOptionsChain(symbol: string) { return this.http.get(`${this.apiUrl}/options/${symbol}`);}
     getNews(symbol: string) { return this.http.get(`${this.apiUrl}/news/${symbol}`);}
     refreshSentiment() { return this.http.get(`${this.apiUrl}/refresh_sentiment`);}
+    
+    // MongoDB integration methods
+    getTradeHistory(userId = 'default', limit = 100) {
+      return this.http.get(`${this.apiUrl}/trade-history?user_id=${userId}&limit=${limit}`);
+    }
+    
+    getPortfolioHistory(userId = 'default') {
+      return this.http.get(`${this.apiUrl}/portfolio-history?user_id=${userId}`);
+    }
 }

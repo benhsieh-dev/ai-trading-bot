@@ -1,0 +1,121 @@
+<div class="trade-history-container p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+  <div class="flex justify-between items-center mb-6">
+    <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Trade History (PostgreSQL)</h2>
+    <button 
+      (click)="refreshData()" 
+      class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+      [disabled]="isLoading">
+      {{ isLoading ? 'Loading...' : 'Refresh' }}
+    </button>
+  </div>
+
+  <!-- Trade History Section -->
+  <div class="mb-8">
+    <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">Recent Trades</h3>
+    
+    <div *ngIf="tradeHistory$ | async as data">
+      <div *ngIf="data.source === 'postgresql'" class="mb-4">
+        <span class="text-green-600 font-medium">✅ Connected to PostgreSQL</span>
+        <span class="text-gray-600 ml-2">({{ data.count }} trades found)</span>
+      </div>
+      
+      <div *ngIf="data.source === 'no_database'" class="mb-4">
+        <span class="text-red-600 font-medium">❌ Database not connected</span>
+        <p class="text-gray-600">{{ data.message }}</p>
+      </div>
+
+      <div *ngIf="data.trades && data.trades.length > 0" class="overflow-x-auto">
+        <table class="min-w-full table-auto border-collapse border border-gray-300 dark:border-gray-600">
+          <thead class="bg-gray-50 dark:bg-gray-700">
+            <tr>
+              <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left">Date</th>
+              <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left">Symbol</th>
+              <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left">Side</th>
+              <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-right">Quantity</th>
+              <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-right">Price</th>
+              <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-right">Total Value</th>
+              <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left">Strategy</th>
+              <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left">Sentiment</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let trade of data.trades" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+              <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm">
+                {{ formatDate(trade.timestamp) }}
+              </td>
+              <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 font-medium">
+                {{ trade.symbol }}
+              </td>
+              <td class="border border-gray-300 dark:border-gray-600 px-4 py-2">
+                <span [class]="getTradeColor(trade.side)" class="font-medium uppercase">
+                  {{ trade.side }}
+                </span>
+              </td>
+              <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-right">
+                {{ trade.quantity }}
+              </td>
+              <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-right">
+                {{ formatCurrency(trade.price) }}
+              </td>
+              <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-right font-medium">
+                {{ formatCurrency(trade.total_value) }}
+              </td>
+              <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm">
+                {{ trade.strategy || 'N/A' }}
+              </td>
+              <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm">
+                {{ trade.sentiment || 'N/A' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div *ngIf="data.trades && data.trades.length === 0" class="text-center py-8 text-gray-500">
+        <p>No trades found in database</p>
+        <p class="text-sm mt-2">Execute some trades to see history here</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Portfolio History Section -->
+  <div>
+    <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">Portfolio Overview</h3>
+    
+    <div *ngIf="portfolioHistory$ | async as portfolioData">
+      <div *ngIf="portfolioData.source === 'mongodb'" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- Current Portfolio -->
+        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+          <h4 class="font-semibold mb-2">Current Portfolio</h4>
+          <div *ngIf="portfolioData.current_portfolio">
+            <p><strong>Cash:</strong> {{ formatCurrency(portfolioData.current_portfolio.cash) }}</p>
+            <p><strong>Last Updated:</strong> {{ formatDate(portfolioData.current_portfolio.last_updated) }}</p>
+            <p><strong>Positions:</strong> {{ portfolioData.current_portfolio.positions?.length || 0 }}</p>
+          </div>
+          <div *ngIf="!portfolioData.current_portfolio" class="text-gray-500">
+            No portfolio data in database yet
+          </div>
+        </div>
+
+        <!-- Recent Trades Summary -->
+        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+          <h4 class="font-semibold mb-2">Trade Statistics</h4>
+          <div *ngIf="portfolioData.recent_trades && portfolioData.recent_trades.length > 0">
+            <p><strong>Total Trades:</strong> {{ portfolioData.recent_trades.length }}</p>
+            <p><strong>Buy Orders:</strong> {{ getBuyOrdersCount(portfolioData.recent_trades) }}</p>
+            <p><strong>Sell Orders:</strong> {{ getSellOrdersCount(portfolioData.recent_trades) }}</p>
+            <p><strong>Total Volume:</strong> {{ formatCurrency(getTotalVolume(portfolioData.recent_trades)) }}</p>
+          </div>
+          <div *ngIf="!portfolioData.recent_trades || portfolioData.recent_trades.length === 0" class="text-gray-500">
+            No trade statistics available
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="portfolioData.source === 'no_database'" class="text-center py-8 text-gray-500">
+        <p>MongoDB not connected - portfolio history unavailable</p>
+      </div>
+    </div>
+  </div>
+</div>
