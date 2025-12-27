@@ -2,6 +2,7 @@
   "routes": {
     "/": {},
     "/dashboard": {},
+    "/history": {},
     "/options": {},
     "/portfolio": {},
     "/sentiment": {}

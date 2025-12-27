@@ -2,14 +2,31 @@ export default `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Frontend</title>
+  <title>AI Trading Bot Dashboard</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+  <!-- Open Graph Meta Tags -->
+  <meta property="og:title" content="AI Trading Bot Dashboard">
+  <meta property="og:description" content="Test AI sentiment analysis vs traditional investing strategies with real-time trading simulation">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ai-trading-bot-a0j9.onrender.com/">
+  <meta property="og:image" content="https://ai-trading-bot-a0j9.onrender.com/static/image/og-image.png">
+  <meta property="og:image:width" content="4047">
+  <meta property="og:image:height" content="2118">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:alt" content="AI Trading Bot Dashboard - Sentiment Analysis vs Traditional Investing">
+
+  <!-- Twitter Card Meta Tags -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="AI Trading Bot Dashboard">
+  <meta name="twitter:description" content="Test AI sentiment analysis vs traditional investing strategies with real-time trading simulation">
+  <meta name="twitter:image" content="https://ai-trading-bot-a0j9.onrender.com/static/image/og-image.png">
 <link rel="stylesheet" href="styles-5INURTSO.css"></head>
 <body><script type="text/javascript" id="ng-event-dispatch-contract">(()=>{function p(t,n,r,o,e,i,f,m){return{eventType:t,event:n,targetElement:r,eic:o,timeStamp:e,eia:i,eirp:f,eiack:m}}function u(t){let n=[],r=e=>{n.push(e)};return{c:t,q:n,et:[],etc:[],d:r,h:e=>{r(p(e.type,e,e.target,t,Date.now()))}}}function s(t,n,r){for(let o=0;o<n.length;o++){let e=n[o];(r?t.etc:t.et).push(e),t.c.addEventListener(e,t.h,r)}}function c(t,n,r,o,e=window){let i=u(t);e._ejsas||(e._ejsas={}),e._ejsas[n]=i,s(i,r),s(i,o,!0)}window.__jsaction_bootstrap=c;})();
 </script>
   <app-root></app-root>
-<script src="polyfills-5CFQRCPP.js" type="module"></script><script src="main-HOYIH5A4.js" type="module"></script></body>
+<script src="polyfills-5CFQRCPP.js" type="module"></script><script src="main-6RBCMLV4.js" type="module"></script></body>
 </html>
 `;
