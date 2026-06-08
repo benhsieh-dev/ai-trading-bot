@@ -13,8 +13,8 @@ export default `<!doctype html>
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://ai-trading-bot-a0j9.onrender.com/">
   <meta property="og:image" content="https://ai-trading-bot-a0j9.onrender.com/og-image.png">
-  <meta property="og:image:width" content="4047">
-  <meta property="og:image:height" content="2118">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
   <meta property="og:image:type" content="image/png">
   <meta property="og:image:alt" content="AI Trading Bot Dashboard - Sentiment Analysis vs Traditional Investing">
 
