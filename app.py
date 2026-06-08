@@ -202,6 +202,10 @@ def serve_angular(path=''):
 def angular_assets(path):
     return send_from_directory('frontend/dist/frontend/browser/assets', path)
 
+@app.route('/og-image.png')
+def og_image():
+    return send_from_directory('frontend/dist/frontend/browser', 'og-image.png', max_age=86400)
+
 @app.route('/favicon.ico')
 def favicon():
     return '', 204
