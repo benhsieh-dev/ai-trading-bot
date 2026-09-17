@@ -31,10 +31,10 @@ RUN cd frontend && npm install
 # Copy application code
 COPY . .
 
-# Build Angular app
+# Build React app
 RUN cd frontend && npm run build
 
-# Verify Angular build
+# Verify React build
 RUN ls -la frontend/dist/
 
 # Create non-root user for security
@@ -45,10 +45,9 @@ USER appuser
 # Expose port (Render will set PORT environment variable)
 EXPOSE $PORT
 
-# Health check to ensure the Angular app is running (uses PORT from environment)
+# Health check to ensure the app is running (uses PORT from environment)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:${PORT:-4000}/ || exit 1
+    CMD curl -f http://localhost:${PORT:-5001}/ || exit 1
 
-# Default command to run the Angular SSR server
-WORKDIR /app/frontend
-CMD ["npm", "run", "serve:ssr:frontend"]
+# Flask serves both the API and the built React static files
+CMD ["python", "app.py"]

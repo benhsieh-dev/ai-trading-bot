@@ -1,4 +1,4 @@
-#\!/bin/bash
+#!/bin/bash
 set -e
 
 echo "🏗️ Starting build process..."
@@ -16,14 +16,13 @@ sudo apt-get install -y nodejs
 echo "✅ Node.js version: $(node --version)"
 echo "✅ npm version: $(npm --version)"
 
-# Install Angular dependencies and build
-echo "📦 Installing Angular dependencies..."
+# Install React dependencies and build
+echo "📦 Installing React dependencies..."
 cd frontend
 npm install
 
-echo "🏗️ Building Angular frontend..."
+echo "🏗️ Building React frontend..."
 npm run build
 
-echo "✅ Build completed successfully\!"
-ls -la dist/frontend/browser/
-EOF < /dev/null
+echo "✅ Build completed successfully!"
+ls -la dist/

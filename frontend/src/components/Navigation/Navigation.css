@@ -1,0 +1,41 @@
+.navigation-tabs {
+  display: flex;
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #e9ecef;
+  padding: 0;
+  margin: 0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.nav-tab {
+  padding: 12px 24px;
+  text-decoration: none;
+  color: #6c757d;
+  font-weight: 500;
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s ease;
+  background-color: transparent;
+  border-radius: 0;
+}
+
+.nav-tab:hover {
+  color: #495057;
+  background-color: #e9ecef;
+}
+
+.nav-tab.active {
+  color: #007bff;
+  border-bottom-color: #007bff;
+  background-color: white;
+}
+
+.nav-tab.disabled {
+  color: #adb5bd;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.nav-tab.disabled:hover {
+  background-color: transparent;
+  color: #adb5bd;
+}

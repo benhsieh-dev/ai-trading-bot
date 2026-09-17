@@ -71,7 +71,7 @@ class MockMLTrader:
         return mock_prices.get(symbol, 100 + random.uniform(-10, 10))
 
 app = Flask(__name__)
-CORS(app, origins=['http://localhost:4200'])
+CORS(app, origins=['http://localhost:5173'])
 
 def generate_realistic_results(symbol, start_year, end_year, position_size):
     """Generate realistic backtest results based on market conditions and historical performance"""
@@ -185,26 +185,26 @@ trading_data = {
 # def portfolio_page():
 #     return render_template('portfolio.html')
 
-# Angular view at port 4200
+# React (Vite) view at port 5173 in dev
 @app.route('/')
 @app.route('/<path:path>')
-def serve_angular(path=''):
+def serve_react(path=''):
     if path.startswith('api/'):
         return abort(404)
     try:
         if path and ('.' in path):
-            return send_from_directory('frontend/dist/frontend/browser', path)
-        return send_file('frontend/dist/frontend/browser/index.html')
+            return send_from_directory('frontend/dist', path)
+        return send_file('frontend/dist/index.html')
     except:
-        return send_file('frontend/dist/frontend/browser/index.html')
+        return send_file('frontend/dist/index.html')
 
 @app.route('/assets/<path:path>')
-def angular_assets(path):
-    return send_from_directory('frontend/dist/frontend/browser/assets', path)
+def react_assets(path):
+    return send_from_directory('frontend/dist/assets', path)
 
 @app.route('/og-image.png')
 def og_image():
-    return send_from_directory('frontend/dist/frontend/browser', 'og-image.png', max_age=86400)
+    return send_from_directory('frontend/dist', 'og-image.png', max_age=86400)
 
 @app.route('/favicon.ico')
 def favicon():
