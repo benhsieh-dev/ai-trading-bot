@@ -66,3 +66,6 @@ __pycache__/
 project.md
 
 DEPLOYMENT_TROUBLESHOOTING.md
+
+# Options strategy research module: cached yfinance downloads
+options_strategy/data_cache/
