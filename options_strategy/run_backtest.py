@@ -41,6 +41,7 @@ def main() -> None:
     parser.add_argument("--capital", type=float, default=100_000.0)
     parser.add_argument("--holding-days", type=int, default=20, help="Trading days per structure")
     parser.add_argument("--otm-pct", type=float, default=0.03)
+    parser.add_argument("--spread-width-pct", type=float, default=0.05, help="Strike gap for spreads/condor wings")
     parser.add_argument("--out", default=None, help="CSV path to save the equity curve")
     args = parser.parse_args()
 
@@ -67,6 +68,7 @@ def main() -> None:
         initial_capital=args.capital,
         holding_period_days=args.holding_days,
         otm_pct=args.otm_pct,
+        spread_width_pct=args.spread_width_pct,
     )
     result = backtester.run(signals)
 

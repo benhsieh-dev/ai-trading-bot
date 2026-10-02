@@ -31,6 +31,11 @@ LONG_CALL = "LONG_CALL"
 LONG_PUT = "LONG_PUT"
 COVERED_CALL = "COVERED_CALL"
 PROTECTIVE_PUT = "PROTECTIVE_PUT"
+BULL_CALL_SPREAD = "BULL_CALL_SPREAD"  # call debit spread
+BULL_PUT_SPREAD = "BULL_PUT_SPREAD"  # put credit spread
+BEAR_CALL_SPREAD = "BEAR_CALL_SPREAD"  # call credit spread
+IRON_CONDOR = "IRON_CONDOR"
+CASH_SECURED_PUT = "CASH_SECURED_PUT"
 
 
 @dataclass
@@ -53,6 +58,7 @@ class Structure:
     legs: list[Leg]
     entry_date: pd.Timestamp | None = None
     exit_date: pd.Timestamp | None = None  # planned close (holding period or expiry)
+    max_loss: float | None = None  # worst-case cash loss if held to expiry, set on open
 
 
 @dataclass
@@ -63,12 +69,14 @@ class Trade:
     entry_cost: float  # cash spent (positive) or received (negative) to open
     exit_proceeds: float  # cash received (positive) or paid (negative) to close
     pnl: float
+    max_loss: float | None = None  # capital at risk when opened (see Structure.max_loss)
 
 
 @dataclass
 class BacktestResult:
     equity_curve: pd.Series
     trades: list[Trade] = field(default_factory=list)
+    skipped_for_capital: int = 0  # signals not acted on because max loss exceeded cash
 
     def summary(self) -> dict:
         equity = self.equity_curve.dropna()
@@ -99,6 +107,7 @@ class BacktestResult:
         wins = [t for t in self.trades if t.pnl > 0]
         win_rate = len(wins) / len(self.trades) if self.trades else np.nan
         avg_trade_pnl = np.mean([t.pnl for t in self.trades]) if self.trades else np.nan
+        worst_trade_pnl = min(t.pnl for t in self.trades) if self.trades else np.nan
 
         return {
             "start_date": str(equity.index[0].date()),
@@ -112,6 +121,8 @@ class BacktestResult:
             "num_trades": len(self.trades),
             "win_rate": round(win_rate, 3) if not np.isnan(win_rate) else None,
             "avg_trade_pnl": round(avg_trade_pnl, 2) if not np.isnan(avg_trade_pnl) else None,
+            "worst_trade_pnl": round(worst_trade_pnl, 2) if not np.isnan(worst_trade_pnl) else None,
+            "skipped_for_capital": self.skipped_for_capital,
         }
 
 
@@ -133,6 +144,7 @@ class OptionsBacktester:
         rate: float = 0.04,
         holding_period_days: int = 20,
         otm_pct: float = 0.03,
+        spread_width_pct: float = 0.05,
         commission_per_contract: float = 0.65,
         option_slippage_pct: float = 0.02,
         price_col: str = "Close",
@@ -144,6 +156,11 @@ class OptionsBacktester:
         holding_period_days: trading days a structure is held before being
             closed, if it doesn't reach expiry first.
         otm_pct: how far out-of-the-money to strike new options (0.03 = 3%).
+        spread_width_pct: distance between the two strikes of a vertical
+            spread (and of each iron condor wing), as a fraction of spot.
+            Debit spreads buy at-the-money and sell this far OTM; credit
+            spreads sell at otm_pct and buy the protective wing this much
+            further out.
         """
         self.prices = price_df[price_col]
         self.vol = vol_series.reindex(self.prices.index).ffill()
@@ -151,6 +168,7 @@ class OptionsBacktester:
         self.rate = rate
         self.holding_period_days = holding_period_days
         self.otm_pct = otm_pct
+        self.spread_width_pct = spread_width_pct
         self.commission_per_contract = commission_per_contract
         self.option_slippage_pct = option_slippage_pct
 
@@ -182,36 +200,39 @@ class OptionsBacktester:
         if t <= 0:
             return None
 
-        def _price(strike: float, option_type: str) -> float:
-            return self._price_option(spot, strike, t, vol, option_type)
+        def _option(quantity: int, option_type: str, strike_mult: float) -> Leg:
+            strike = round(spot * strike_mult, 2)
+            leg = Leg("option", quantity=quantity, option_type=option_type, strike=strike, expiry=expiry)
+            leg.entry_price = self._price_option(spot, strike, t, vol, option_type)
+            return leg
 
-        if signal == LONG_CALL:
-            strike = round(spot * (1 + self.otm_pct), 2)
-            leg = Leg("option", quantity=1, option_type="call", strike=strike, expiry=expiry)
-            leg.entry_price = _price(strike, "call")
-            return Structure("LONG_CALL", [leg], entry_date=date, exit_date=expiry)
+        def _stock() -> Leg:
+            return Leg("stock", quantity=CONTRACT_MULTIPLIER, entry_price=spot)
 
-        if signal == LONG_PUT:
-            strike = round(spot * (1 - self.otm_pct), 2)
-            leg = Leg("option", quantity=1, option_type="put", strike=strike, expiry=expiry)
-            leg.entry_price = _price(strike, "put")
-            return Structure("LONG_PUT", [leg], entry_date=date, exit_date=expiry)
+        otm, width = self.otm_pct, self.spread_width_pct
+        legs_by_signal = {
+            LONG_CALL: lambda: [_option(1, "call", 1 + otm)],
+            LONG_PUT: lambda: [_option(1, "put", 1 - otm)],
+            COVERED_CALL: lambda: [_stock(), _option(-1, "call", 1 + otm)],
+            PROTECTIVE_PUT: lambda: [_stock(), _option(1, "put", 1 - otm)],
+            BULL_CALL_SPREAD: lambda: [_option(1, "call", 1.0), _option(-1, "call", 1 + width)],
+            BULL_PUT_SPREAD: lambda: [_option(-1, "put", 1 - otm), _option(1, "put", 1 - otm - width)],
+            BEAR_CALL_SPREAD: lambda: [_option(-1, "call", 1 + otm), _option(1, "call", 1 + otm + width)],
+            IRON_CONDOR: lambda: [
+                _option(1, "put", 1 - otm - width),
+                _option(-1, "put", 1 - otm),
+                _option(-1, "call", 1 + otm),
+                _option(1, "call", 1 + otm + width),
+            ],
+            CASH_SECURED_PUT: lambda: [_option(-1, "put", 1 - otm)],
+        }
+        if signal not in legs_by_signal:
+            return None  # FLAT or unrecognized signal
 
-        if signal == COVERED_CALL:
-            stock_leg = Leg("stock", quantity=CONTRACT_MULTIPLIER, entry_price=spot)
-            strike = round(spot * (1 + self.otm_pct), 2)
-            call_leg = Leg("option", quantity=-1, option_type="call", strike=strike, expiry=expiry)
-            call_leg.entry_price = _price(strike, "call")
-            return Structure("COVERED_CALL", [stock_leg, call_leg], entry_date=date, exit_date=expiry)
+        structure = Structure(signal, legs_by_signal[signal](), entry_date=date, exit_date=expiry)
+        structure.max_loss = self._max_loss(structure)
+        return structure
 
-        if signal == PROTECTIVE_PUT:
-            stock_leg = Leg("stock", quantity=CONTRACT_MULTIPLIER, entry_price=spot)
-            strike = round(spot * (1 - self.otm_pct), 2)
-            put_leg = Leg("option", quantity=1, option_type="put", strike=strike, expiry=expiry)
-            put_leg.entry_price = _price(strike, "put")
-            return Structure("PROTECTIVE_PUT", [stock_leg, put_leg], entry_date=date, exit_date=expiry)
-
-        return None  # FLAT or unrecognized signal
 
     # -- valuation ------------------------------------------------------------
 
@@ -260,21 +281,55 @@ class OptionsBacktester:
                 proceeds -= self.commission_per_contract * abs(leg.quantity)
         return proceeds
 
+    def _max_loss(self, structure: Structure) -> float:
+        """Worst-case cash loss if the structure is held to expiry, using the
+        same open/close accounting (slippage, commissions) as the backtest.
+
+        Every leg's payoff at expiry is piecewise linear in the underlying
+        price, kinked only at strikes, so the minimum close value is at S=0,
+        at a strike, or out in the upside tail. Net short calls/stock above
+        the top strike (e.g. a naked short call) means unbounded loss.
+
+        Otherwise the tail is checked at 2x the top strike rather than at
+        infinity: the proportional slippage haircut makes deep-ITM short
+        calls cost slightly more to buy back than their hedge returns, so
+        even a covered call drifts down forever in this model. A doubling of
+        the underlying within one holding period is a generous bound.
+        """
+        upside_slope = sum(
+            leg.quantity * leg.multiplier
+            for leg in structure.legs
+            if leg.kind == "stock" or leg.option_type == "call"
+        )
+        if upside_slope < 0:
+            return float("inf")
+        strikes = sorted({leg.strike for leg in structure.legs if leg.kind == "option"})
+        top = max(strikes, default=self.prices.loc[structure.entry_date])
+        worst_close = min(self._close_proceeds(structure, s, 0.0) for s in [0.0, *strikes, top * 2])
+        return self._open_cost(structure) - worst_close
+
     # -- main loop --------------------------------------------------------
 
     def run(self, signals: pd.Series) -> BacktestResult:
         """`signals` is a Series aligned to price_df's index with values from
-        {FLAT, LONG_CALL, LONG_PUT, COVERED_CALL, PROTECTIVE_PUT}.
+        the signal constants at the top of this module (FLAT, LONG_CALL, ...).
 
         A new structure is only opened when no structure is currently open.
         Once open, it's held until its planned exit_date regardless of later
         signal changes (avoids unrealistic same-day flip-flopping).
+
+        A structure is only opened if current cash covers both its opening
+        cost and its max loss at expiry -- a simple stand-in for broker
+        buying-power rules, so short-vol structures can't lose money the
+        account never had. Signals skipped for this are counted in
+        `BacktestResult.skipped_for_capital`.
         """
         dates = self.prices.index
         cash = self.initial_capital
         open_structure: Structure | None = None
         equity_curve = pd.Series(index=dates, dtype=float)
         trades: list[Trade] = []
+        skipped_for_capital = 0
 
         for idx, date in enumerate(dates):
             spot = self.prices.loc[date]
@@ -292,6 +347,7 @@ class OptionsBacktester:
                         entry_cost=entry_cost,
                         exit_proceeds=proceeds,
                         pnl=proceeds - entry_cost,
+                        max_loss=open_structure.max_loss,
                     )
                 )
                 open_structure = None
@@ -301,8 +357,12 @@ class OptionsBacktester:
                 if signal != FLAT:
                     candidate = self._build_structure(signal, date, idx)
                     if candidate is not None:
-                        cash -= self._open_cost(candidate)
-                        open_structure = candidate
+                        open_cost = self._open_cost(candidate)
+                        if max(open_cost, candidate.max_loss) > cash:
+                            skipped_for_capital += 1
+                        else:
+                            cash -= open_cost
+                            open_structure = candidate
 
             # Mark to market.
             mtm = 0.0
@@ -334,8 +394,11 @@ class OptionsBacktester:
                     entry_cost=entry_cost,
                     exit_proceeds=proceeds,
                     pnl=proceeds - entry_cost,
+                    max_loss=open_structure.max_loss,
                 )
             )
             equity_curve.loc[last_date] = cash
 
-        return BacktestResult(equity_curve=equity_curve, trades=trades)
+        return BacktestResult(
+            equity_curve=equity_curve, trades=trades, skipped_for_capital=skipped_for_capital
+        )
