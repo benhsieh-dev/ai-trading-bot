@@ -163,8 +163,8 @@ def compare(results: dict[str, BacktestResult]) -> pd.DataFrame:
     return pd.DataFrame({name: r.summary() for name, r in results.items()}).T
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Walk-forward evaluation of the rule-based baseline.")
+def add_walk_forward_args(parser: argparse.ArgumentParser) -> None:
+    """CLI options shared by every walk-forward runner."""
     parser.add_argument("--symbol", default="SPY")
     parser.add_argument("--start", default="2010-01-01")
     parser.add_argument("--end", default=None)
@@ -174,19 +174,29 @@ def main() -> None:
     parser.add_argument("--gap-days", type=int, default=20, help="Trading days between train and test (>= holding period)")
     parser.add_argument("--expanding", action="store_true", help="Expanding instead of rolling training window")
     parser.add_argument("--holding-days", type=int, default=20)
+
+
+def load_inputs(symbol: str, start: str, end: str | None) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series]:
+    """Fetch prices (plus VIX for broad-market symbols) and build features and the IV proxy."""
+    print(f"Fetching {symbol} history from {start} to {end or 'today'}...")
+    price_df = data.get_price_history(symbol, start, end)
+    vix = None
+    if symbol.upper() in BROAD_MARKET_PROXIES:
+        vix = data.get_vix_history(start, end)
+        price_df = data.align_to_trading_days(price_df, vix)
+    features = indicators.build_feature_frame(price_df, vix=vix)
+    return price_df, features, build_vol_series(features)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Walk-forward evaluation of the rule-based baseline.")
+    add_walk_forward_args(parser)
     args = parser.parse_args()
 
     if args.gap_days < args.holding_days:
         parser.error("--gap-days must be >= --holding-days, or forward labels leak into the test window")
 
-    print(f"Fetching {args.symbol} history from {args.start} to {args.end or 'today'}...")
-    price_df = data.get_price_history(args.symbol, args.start, args.end)
-    vix = None
-    if args.symbol.upper() in BROAD_MARKET_PROXIES:
-        vix = data.get_vix_history(args.start, args.end)
-        price_df = data.align_to_trading_days(price_df, vix)
-    features = indicators.build_feature_frame(price_df, vix=vix)
-    vol_series = build_vol_series(features)
+    price_df, features, vol_series = load_inputs(args.symbol, args.start, args.end)
 
     result = run_walk_forward(
         price_df,

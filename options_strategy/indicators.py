@@ -117,6 +117,9 @@ def build_feature_frame(
 
     macd_df = macd(prices)
     features = features.join(macd_df)
+    # Raw MACD is in price units, so it drifts with the price level; this
+    # scale-free version is the one models should train on.
+    features["macd_hist_pct"] = macd_df["macd_hist"] / prices
 
     features["realized_vol_10"] = realized_volatility(prices, 10)
     features["realized_vol_20"] = realized_volatility(prices, 20)
