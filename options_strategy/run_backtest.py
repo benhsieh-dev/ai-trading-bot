@@ -33,6 +33,23 @@ def build_vol_series(features: pd.DataFrame) -> pd.Series:
     )
 
 
+def add_pricing_args(parser: argparse.ArgumentParser) -> None:
+    """Skew and bid/ask options passed through to OptionsBacktester."""
+    parser.add_argument("--skew-slope", type=float, default=-0.15,
+                        help="Vol skew slope per sd of moneyness (0 with --skew-curvature 0 = flat vol)")
+    parser.add_argument("--skew-curvature", type=float, default=0.05, help="Vol skew curvature")
+    parser.add_argument("--otm-slippage-mult", type=float, default=0.5,
+                        help="Extra bid/ask haircut per sd OTM, as a multiple of the base haircut")
+
+
+def pricing_kwargs(args: argparse.Namespace) -> dict:
+    return dict(
+        skew_slope=args.skew_slope,
+        skew_curvature=args.skew_curvature,
+        otm_slippage_mult=args.otm_slippage_mult,
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Backtest the rule-based options strategy.")
     parser.add_argument("--symbol", default="SPY")
@@ -43,6 +60,7 @@ def main() -> None:
     parser.add_argument("--otm-pct", type=float, default=0.03)
     parser.add_argument("--spread-width-pct", type=float, default=0.05, help="Strike gap for spreads/condor wings")
     parser.add_argument("--out", default=None, help="CSV path to save the equity curve")
+    add_pricing_args(parser)
     args = parser.parse_args()
 
     print(f"Fetching {args.symbol} history from {args.start} to {args.end or 'today'}...")
@@ -69,6 +87,7 @@ def main() -> None:
         holding_period_days=args.holding_days,
         otm_pct=args.otm_pct,
         spread_width_pct=args.spread_width_pct,
+        **pricing_kwargs(args),
     )
     result = backtester.run(signals)
 

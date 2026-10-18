@@ -31,6 +31,7 @@ from options_strategy.walk_forward import (
     buy_and_hold,
     compare,
     load_inputs,
+    pricing_kwargs,
     run_walk_forward,
 )
 
@@ -70,6 +71,7 @@ def main() -> None:
         expanding=args.expanding,
         initial_capital=args.capital,
         holding_period_days=args.holding_days,
+        **pricing_kwargs(args),
     )
 
     # True labels over the full history: used only for scoring and the

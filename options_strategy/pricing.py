@@ -1,9 +1,11 @@
 """
-Options pricing: Black-Scholes price and Greeks, plus a simple IV proxy.
+Options pricing: Black-Scholes price and Greeks, a simple IV proxy, and a
+parametric volatility skew around it.
 
 We don't have real historical option chains, so implied volatility here is a
 proxy (VIX/100 for broad-market underlyings, or trailing realized vol as a
-fallback for anything else) rather than a true market-observed IV. Every
+fallback for anything else) rather than a true market-observed IV. The proxy
+is treated as at-the-money vol, and `skewed_vol` bends it by strike. Every
 value this module produces should be treated as a synthetic estimate, not a
 historical fill price. See options_strategy/PROJECT.md for the data caveats.
 
@@ -139,3 +141,41 @@ def iv_proxy_fallback(realized_vol: float, richness_multiplier: float = 1.1) -> 
     realized vol on average (the variance risk premium).
     """
     return realized_vol * richness_multiplier
+
+
+def standardized_moneyness(atm_vol: float, spot: float, strike: float, time_to_expiry: float) -> float:
+    """ln(K/S) in units of the expected move, atm_vol * sqrt(T). Positive
+    above spot (OTM calls), negative below (OTM puts)."""
+    return math.log(strike / spot) / (atm_vol * math.sqrt(time_to_expiry))
+
+
+def skewed_vol(
+    atm_vol: float,
+    spot: float,
+    strike: float,
+    time_to_expiry: float,
+    slope: float = -0.15,
+    curvature: float = 0.05,
+    min_ratio: float = 0.5,
+    max_ratio: float = 3.0,
+) -> float:
+    """Implied vol at `strike`, scaled off at-the-money vol by a quadratic in
+    standardized moneyness x = ln(K/S) / (atm_vol * sqrt(T)):
+
+        vol = atm_vol * clip(1 + slope * x + curvature * x^2, min_ratio, max_ratio)
+
+    x is how many standard deviations of the expected move the strike sits
+    from spot, so the same skew shape applies at any vol level or expiry.
+    The defaults put a 1-sd OTM put at 1.20x ATM vol and a 1-sd OTM call at
+    0.90x, a mild version of the typical index-option smirk (OTM puts rich,
+    OTM calls cheap). They're not fitted to real chains, which we don't
+    have; phase 9 should check them against saved snapshots.
+
+    slope=0 and curvature=0 give back flat vol at every strike.
+    """
+    if time_to_expiry <= 0 or atm_vol <= 0:
+        return atm_vol
+    x = standardized_moneyness(atm_vol, spot, strike, time_to_expiry)
+    ratio = min(max(1 + slope * x + curvature * x * x, min_ratio), max_ratio)
+    return atm_vol * ratio
+

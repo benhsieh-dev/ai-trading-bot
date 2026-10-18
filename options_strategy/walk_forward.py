@@ -31,7 +31,12 @@ import pandas as pd
 
 from options_strategy import data, indicators, strategy
 from options_strategy.backtester import FLAT, SIGNALS, BacktestResult, OptionsBacktester
-from options_strategy.run_backtest import BROAD_MARKET_PROXIES, build_vol_series
+from options_strategy.run_backtest import (
+    BROAD_MARKET_PROXIES,
+    add_pricing_args,
+    build_vol_series,
+    pricing_kwargs,
+)
 
 # (train_features, train_prices, test_features) -> signals indexed by test_features.index.
 # train_prices is the price_df slice (Close, VIX, ...) for the training dates only.
@@ -174,6 +179,7 @@ def add_walk_forward_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--gap-days", type=int, default=20, help="Trading days between train and test (>= holding period)")
     parser.add_argument("--expanding", action="store_true", help="Expanding instead of rolling training window")
     parser.add_argument("--holding-days", type=int, default=20)
+    add_pricing_args(parser)
 
 
 def load_inputs(symbol: str, start: str, end: str | None) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series]:
@@ -209,6 +215,7 @@ def main() -> None:
         expanding=args.expanding,
         initial_capital=args.capital,
         holding_period_days=args.holding_days,
+        **pricing_kwargs(args),
     )
     first, last = result.splits[0].test[0], result.splits[-1].test[-1]
     print(f"\n{len(result.splits)} walk-forward windows, test span {first.date()} to {last.date()}")

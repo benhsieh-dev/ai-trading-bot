@@ -7,7 +7,8 @@ options pricing layer: contract multiplier, expiry, and a bid/ask slippage
 haircut, none of which plain-equity marketsim needs.
 
 Every price in a backtest run comes from Black-Scholes off a volatility
-proxy (see pricing.py / data.py), not a real historical option quote. Treat
+proxy (see pricing.py / data.py), bent by a parametric skew, not a real
+historical option quote. Treat
 results as directional, not as a guarantee of what real fills would have
 looked like. See options_strategy/PROJECT.md for the full caveat.
 """
@@ -19,7 +20,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import pandas as pd
 
-from options_strategy.pricing import black_scholes_price
+from options_strategy.pricing import black_scholes_price, skewed_vol, standardized_moneyness
 
 CONTRACT_MULTIPLIER = 100
 CALENDAR_DAYS_PER_YEAR = 365.0
@@ -57,7 +58,8 @@ class Leg:
     option_type: str | None = None  # "call" / "put", None for stock
     strike: float | None = None
     expiry: pd.Timestamp | None = None
-    entry_price: float | None = None  # execution price, set once opened
+    entry_price: float | None = None  # mid price at open
+    entry_slippage_pct: float | None = None  # bid/ask haircut at open (options only)
 
     @property
     def multiplier(self) -> int:
@@ -159,6 +161,9 @@ class OptionsBacktester:
         spread_width_pct: float = 0.05,
         commission_per_contract: float = 0.65,
         option_slippage_pct: float = 0.02,
+        skew_slope: float = -0.15,
+        skew_curvature: float = 0.05,
+        otm_slippage_mult: float = 0.5,
         price_col: str = "Close",
     ):
         """
@@ -173,6 +178,13 @@ class OptionsBacktester:
             Debit spreads buy at-the-money and sell this far OTM; credit
             spreads sell at otm_pct and buy the protective wing this much
             further out.
+        skew_slope, skew_curvature: shape of the vol skew around the
+            vol_series level, which is treated as at-the-money vol (see
+            pricing.skewed_vol). Both 0 prices every strike at flat vol.
+        option_slippage_pct: bid/ask haircut on an at- or in-the-money option,
+            as a fraction of mid. An OTM option's haircut grows by
+            otm_slippage_mult per standard deviation OTM (see _slippage_pct).
+            otm_slippage_mult=0 gives the same haircut at every strike.
         """
         self.prices = price_df[price_col]
         self.vol = vol_series.reindex(self.prices.index).ffill()
@@ -183,6 +195,9 @@ class OptionsBacktester:
         self.spread_width_pct = spread_width_pct
         self.commission_per_contract = commission_per_contract
         self.option_slippage_pct = option_slippage_pct
+        self.skew_slope = skew_slope
+        self.skew_curvature = skew_curvature
+        self.otm_slippage_mult = otm_slippage_mult
 
     # -- structure builders -------------------------------------------------
 
@@ -197,9 +212,28 @@ class OptionsBacktester:
     def _price_option(
         self, spot: float, strike: float, t: float, vol: float, option_type: str
     ) -> float:
+        """Mid price. `vol` is at-the-money vol; the skew sets this strike's vol."""
         if t <= 0:
             return max(spot - strike, 0.0) if option_type == "call" else max(strike - spot, 0.0)
-        return black_scholes_price(spot, strike, t, vol, rate=self.rate, option_type=option_type)
+        strike_vol = skewed_vol(vol, spot, strike, t, slope=self.skew_slope, curvature=self.skew_curvature)
+        return black_scholes_price(spot, strike, t, strike_vol, rate=self.rate, option_type=option_type)
+
+    def _slippage_pct(
+        self, spot: float, strike: float, t: float, vol: float, option_type: str
+    ) -> float:
+        """Bid/ask haircut as a fraction of mid: option_slippage_pct at the
+        money, widened by otm_slippage_mult per standard deviation OTM. Cheap
+        far-OTM options (condor and spread wings) trade at wider spreads
+        relative to their price than near-the-money ones.
+
+        At expiry (t <= 0) there's no OTM-ness to measure; an OTM option is
+        worth zero there anyway, so the base haircut applies.
+        """
+        if t <= 0 or vol <= 0:
+            return self.option_slippage_pct
+        x = standardized_moneyness(vol, spot, strike, t)
+        sd_otm = max(x, 0.0) if option_type == "call" else max(-x, 0.0)
+        return self.option_slippage_pct * (1 + self.otm_slippage_mult * sd_otm)
 
     def _build_structure(self, signal: str, date: pd.Timestamp, idx: int) -> Structure | None:
         spot = self.prices.loc[date]
@@ -216,6 +250,7 @@ class OptionsBacktester:
             strike = round(spot * strike_mult, 2)
             leg = Leg("option", quantity=quantity, option_type=option_type, strike=strike, expiry=expiry)
             leg.entry_price = self._price_option(spot, strike, t, vol, option_type)
+            leg.entry_slippage_pct = self._slippage_pct(spot, strike, t, vol, option_type)
             return leg
 
         def _stock() -> Leg:
@@ -260,7 +295,7 @@ class OptionsBacktester:
         cost = 0.0
         for leg in structure.legs:
             exec_price = (
-                _execution_price(leg.entry_price, leg.quantity, opening=True, slippage_pct=self.option_slippage_pct)
+                _execution_price(leg.entry_price, leg.quantity, opening=True, slippage_pct=leg.entry_slippage_pct)
                 if leg.kind == "option"
                 else leg.entry_price
             )
@@ -274,15 +309,12 @@ class OptionsBacktester:
         proceeds = 0.0
         for leg in structure.legs:
             if leg.kind == "stock":
-                mid_price = spot
+                exec_price = spot
             else:
                 t = self._time_to_expiry(structure.exit_date, leg.expiry)
                 mid_price = self._price_option(spot, leg.strike, t, vol, leg.option_type)
-            exec_price = (
-                _execution_price(mid_price, leg.quantity, opening=False, slippage_pct=self.option_slippage_pct)
-                if leg.kind == "option"
-                else mid_price
-            )
+                slippage_pct = self._slippage_pct(spot, leg.strike, t, vol, leg.option_type)
+                exec_price = _execution_price(mid_price, leg.quantity, opening=False, slippage_pct=slippage_pct)
             # Closing settles the same side of the market the position was
             # already on: selling a long leg receives quantity*price (positive),
             # buying back a short leg pays quantity*price (quantity<0, so
