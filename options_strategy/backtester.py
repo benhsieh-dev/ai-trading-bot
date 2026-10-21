@@ -352,6 +352,31 @@ class OptionsBacktester:
         worst_close = min(self._close_proceeds(structure, s, 0.0) for s in [0.0, *strikes, top * 2])
         return self._open_cost(structure) - worst_close
 
+    def trade_outcome(self, signal: str, idx: int) -> Trade | None:
+        """Open `signal` on trading day `idx` and close it after the holding
+        period, priced exactly as run() would, but ignoring cash and any
+        other open position. None if the structure can't be built or the
+        holding period runs past the end of the price history.
+        """
+        if idx + self.holding_period_days >= len(self.prices):
+            return None
+        date = self.prices.index[idx]
+        structure = self._build_structure(signal, date, idx)
+        if structure is None:
+            return None
+        exit_date = structure.exit_date
+        proceeds = self._close_proceeds(structure, self.prices.loc[exit_date], self.vol.loc[exit_date])
+        entry_cost = self._open_cost(structure)
+        return Trade(
+            structure_name=signal,
+            entry_date=date,
+            exit_date=exit_date,
+            entry_cost=entry_cost,
+            exit_proceeds=proceeds,
+            pnl=proceeds - entry_cost,
+            max_loss=structure.max_loss,
+        )
+
     # -- main loop --------------------------------------------------------
 
     def run(self, signals: pd.Series) -> BacktestResult:
