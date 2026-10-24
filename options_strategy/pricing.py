@@ -18,6 +18,8 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
+from scipy.optimize import brentq
+
 TRADING_DAYS_PER_YEAR = 252
 
 
@@ -72,6 +74,27 @@ def black_scholes_price(
     if option_type == "call":
         return spot * disc_div * norm_cdf(d1) - strike * disc_rate * norm_cdf(d2)
     return strike * disc_rate * norm_cdf(-d2) - spot * disc_div * norm_cdf(-d1)
+
+
+def implied_vol(
+    price: float,
+    spot: float,
+    strike: float,
+    time_to_expiry: float,
+    rate: float = 0.04,
+    dividend: float = 0.0,
+    option_type: str = "call",
+    low: float = 0.005,
+    high: float = 5.0,
+) -> float:
+    """Vol at which black_scholes_price matches `price`, or NaN if no vol in
+    [low, high] does (e.g. a price below intrinsic value)."""
+    def gap(vol: float) -> float:
+        return black_scholes_price(spot, strike, time_to_expiry, vol, rate, dividend, option_type) - price
+
+    if time_to_expiry <= 0 or price <= 0 or gap(low) > 0 or gap(high) < 0:
+        return float("nan")
+    return brentq(gap, low, high, xtol=1e-6)
 
 
 @dataclass
