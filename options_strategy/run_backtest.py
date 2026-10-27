@@ -34,18 +34,24 @@ def build_vol_series(features: pd.DataFrame) -> pd.Series:
 
 
 def add_pricing_args(parser: argparse.ArgumentParser) -> None:
-    """Skew and bid/ask options passed through to OptionsBacktester."""
+    """Vol level, skew and bid/ask options passed through to OptionsBacktester."""
+    parser.add_argument("--atm-vol-scale", type=float, default=1.0,
+                        help="Multiply the IV proxy by this to get ATM vol (1 / the VIX-to-ATM ratio)")
     parser.add_argument("--skew-slope", type=float, default=-0.15,
                         help="Vol skew slope per sd of moneyness (0 with --skew-curvature 0 = flat vol)")
     parser.add_argument("--skew-curvature", type=float, default=0.05, help="Vol skew curvature")
+    parser.add_argument("--option-slippage-pct", type=float, default=0.02,
+                        help="Bid/ask haircut at the money, as a fraction of mid")
     parser.add_argument("--otm-slippage-mult", type=float, default=0.5,
                         help="Extra bid/ask haircut per sd OTM, as a multiple of the base haircut")
 
 
 def pricing_kwargs(args: argparse.Namespace) -> dict:
     return dict(
+        atm_vol_scale=args.atm_vol_scale,
         skew_slope=args.skew_slope,
         skew_curvature=args.skew_curvature,
+        option_slippage_pct=args.option_slippage_pct,
         otm_slippage_mult=args.otm_slippage_mult,
     )
 

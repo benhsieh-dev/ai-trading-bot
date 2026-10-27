@@ -4,7 +4,9 @@
   Daily SPY option-chain snapshot (options_strategy/chain_snapshots.py).
   Weekdays at 16:30 local (Central), after options stop trading at 16:15 ET.
   A run missed while the Mac sleeps happens on wake; reruns for a quote date
-  that's already saved are skipped.
+  that's already saved are skipped. The log lives in ~/Library/Logs, and the
+  shell does the cd, because launchd itself can't open paths on the external
+  drive (it fails with exit 78, EX_CONFIG, before the job starts).
 
   Install:   cp options_strategy/launchd/com.aitradingbot.chain-snapshot.plist ~/Library/LaunchAgents/
              launchctl load ~/Library/LaunchAgents/com.aitradingbot.chain-snapshot.plist
@@ -17,14 +19,10 @@
     <string>com.aitradingbot.chain-snapshot</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/bqh5026/miniconda3/bin/python3</string>
-        <string>-m</string>
-        <string>options_strategy.chain_snapshots</string>
-        <string>--symbols</string>
-        <string>SPY</string>
+        <string>/bin/zsh</string>
+        <string>-c</string>
+        <string>cd /Volumes/Samsung/ai-trading-bot &amp;&amp; /Users/bqh5026/miniconda3/bin/python3 -m options_strategy.chain_snapshots --symbols SPY</string>
     </array>
-    <key>WorkingDirectory</key>
-    <string>/Volumes/Samsung/ai-trading-bot</string>
     <key>StartCalendarInterval</key>
     <array>
         <dict><key>Weekday</key><integer>1</integer><key>Hour</key><integer>16</integer><key>Minute</key><integer>30</integer></dict>
@@ -34,8 +32,8 @@
         <dict><key>Weekday</key><integer>5</integer><key>Hour</key><integer>16</integer><key>Minute</key><integer>30</integer></dict>
     </array>
     <key>StandardOutPath</key>
-    <string>/Volumes/Samsung/ai-trading-bot/options_strategy/chain_snapshots/snapshot.log</string>
+    <string>/Users/bqh5026/Library/Logs/aitradingbot-chain-snapshot.log</string>
     <key>StandardErrorPath</key>
-    <string>/Volumes/Samsung/ai-trading-bot/options_strategy/chain_snapshots/snapshot.log</string>
+    <string>/Users/bqh5026/Library/Logs/aitradingbot-chain-snapshot.log</string>
 </dict>
 </plist>

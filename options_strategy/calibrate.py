@@ -50,6 +50,7 @@ from options_strategy.backtester import (
     OptionsBacktester,
 )
 from options_strategy.pricing import implied_vol
+from options_strategy.run_backtest import add_pricing_args, pricing_kwargs
 
 RATE = 0.04  # OptionsBacktester's default rate
 
@@ -157,6 +158,7 @@ def compare_structures(
         **pricing,
     )
     t = bt._time_to_expiry(date, expiry_date)
+    atm_vol = float(bt.vol.iloc[0])  # VIX after the backtester's atm_vol_scale
 
     rows = {}
     for name, legs in structure_legs(otm_pct, width_pct).items():
@@ -169,8 +171,8 @@ def compare_structures(
             strike = float(row["strike"].iloc[0])
             strikes.append(strike)
             real = row["ask"].iloc[0] if qty > 0 else row["bid"].iloc[0]
-            mid = bt._price_option(spot, strike, t, vix / 100, option_type)
-            haircut = bt._slippage_pct(spot, strike, t, vix / 100, option_type)
+            mid = bt._price_option(spot, strike, t, atm_vol, option_type)
+            haircut = bt._slippage_pct(spot, strike, t, atm_vol, option_type)
             model = mid * (1 + haircut) if qty > 0 else mid * (1 - haircut)
             model_cost += qty * model * CONTRACT_MULTIPLIER
             real_cost += qty * real * CONTRACT_MULTIPLIER
@@ -193,20 +195,14 @@ def main() -> None:
     parser.add_argument("--otm-pct", type=float, default=0.03)
     parser.add_argument("--spread-width-pct", type=float, default=0.05)
     parser.add_argument("--holding-days", type=int, default=20)
-    parser.add_argument("--skew-slope", type=float, default=-0.15)
-    parser.add_argument("--skew-curvature", type=float, default=0.05)
-    parser.add_argument("--option-slippage-pct", type=float, default=0.02)
-    parser.add_argument("--otm-slippage-mult", type=float, default=0.5)
+    add_pricing_args(parser)
     args = parser.parse_args()
 
     pricing = dict(
         otm_pct=args.otm_pct,
         spread_width_pct=args.spread_width_pct,
         holding_period_days=args.holding_days,
-        skew_slope=args.skew_slope,
-        skew_curvature=args.skew_curvature,
-        option_slippage_pct=args.option_slippage_pct,
-        otm_slippage_mult=args.otm_slippage_mult,
+        **pricing_kwargs(args),
     )
     snapshots = chain_snapshots.load_snapshots(args.symbol)
 
@@ -246,10 +242,13 @@ def main() -> None:
         print(per_expiry.round(4).to_string(index=False))
 
         print(f"\nPooled fit (|x| <= {args.max_sd:g} sd) vs backtester settings:")
+        atm_vol_scale = float((1 / per_expiry["vix_over_atm"]).median())
         print(pd.DataFrame({
-            "fitted": [slope, curvature, base, mult],
-            "backtester": [args.skew_slope, args.skew_curvature, args.option_slippage_pct, args.otm_slippage_mult],
-        }, index=["skew_slope", "skew_curvature", "option_slippage_pct", "otm_slippage_mult"]).round(4).to_string())
+            "fitted": [atm_vol_scale, slope, curvature, base, mult],
+            "backtester": [args.atm_vol_scale, args.skew_slope, args.skew_curvature,
+                           args.option_slippage_pct, args.otm_slippage_mult],
+        }, index=["atm_vol_scale", "skew_slope", "skew_curvature", "option_slippage_pct", "otm_slippage_mult"])
+              .round(4).to_string())
 
         print("\nIV / ATM IV at 1 and 2 sd OTM, fitted vs backtester:")
         for label, (s, c) in {"fitted": (slope, curvature), "backtester": (args.skew_slope, args.skew_curvature)}.items():

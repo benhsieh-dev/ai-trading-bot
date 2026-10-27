@@ -164,6 +164,7 @@ class OptionsBacktester:
         skew_slope: float = -0.15,
         skew_curvature: float = 0.05,
         otm_slippage_mult: float = 0.5,
+        atm_vol_scale: float = 1.0,
         price_col: str = "Close",
     ):
         """
@@ -185,9 +186,14 @@ class OptionsBacktester:
             as a fraction of mid. An OTM option's haircut grows by
             otm_slippage_mult per standard deviation OTM (see _slippage_pct).
             otm_slippage_mult=0 gives the same haircut at every strike.
+        atm_vol_scale: multiplies vol_series to get at-the-money vol. VIX
+            runs above SPY's ATM implied vol, since it also prices the OTM
+            put skew, so taking VIX as ATM vol overprices every option.
+            calibrate.py measures VIX / ATM vol from chain snapshots; the
+            scale is its reciprocal. 1.0 uses vol_series as-is.
         """
         self.prices = price_df[price_col]
-        self.vol = vol_series.reindex(self.prices.index).ffill()
+        self.vol = vol_series.reindex(self.prices.index).ffill() * atm_vol_scale
         self.initial_capital = initial_capital
         self.rate = rate
         self.holding_period_days = holding_period_days
